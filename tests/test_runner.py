@@ -9,7 +9,7 @@ class TestRun(unittest.TestCase):
         mod = importlib.import_module('tests.fixtures.runner.all_pass')
         results = run(mod)
         self.assertEqual(len(results), 2)
-        for func, exc in results:
+        for _, exc in results:
             self.assertIsNone(exc)
 
     def test_single_failing_assert(self):
@@ -17,11 +17,10 @@ class TestRun(unittest.TestCase):
             'tests.fixtures.runner.has_failure',
         )
         results = run(mod)
-        names = [(f.__name__, exc) for f, exc in results]
-        self.assertEqual(names[0][0], 'passes')
-        self.assertIsNone(names[0][1])
-        self.assertEqual(names[1][0], 'fails')
-        self.assertIsInstance(names[1][1], AssertionError)
+        self.assertEqual(results[0][0], 'passes')
+        self.assertIsNone(results[0][1])
+        self.assertEqual(results[1][0], 'fails')
+        self.assertIsInstance(results[1][1], AssertionError)
 
     def test_results_in_discover_order(self):
         mod = importlib.import_module(
@@ -29,7 +28,7 @@ class TestRun(unittest.TestCase):
         )
         results = run(mod)
         self.assertEqual(
-            [f.__name__ for f, _ in results],
+            [name for name, _ in results],
             ['passes', 'fails'],
         )
 
@@ -44,8 +43,8 @@ class TestRun(unittest.TestCase):
         )
         results = run(mod)
         self.assertEqual(len(results), 1)
-        func, exc = results[0]
-        self.assertEqual(func.__name__, 'raises_value_error')
+        name, exc = results[0]
+        self.assertEqual(name, 'raises_value_error')
         self.assertIsInstance(exc, ValueError)
 
     def test_keyboard_interrupt_propagates(self):
@@ -63,7 +62,7 @@ class TestRunClass(unittest.TestCase):
         )
         results = run(mod)
         self.assertEqual(len(results), 2)
-        names = [bound.__qualname__ for bound, _ in results]
+        names = [name for name, _ in results]
         self.assertEqual(names, ['Simple.first', 'Simple.second'])
         for _, exc in results:
             self.assertIsNone(exc)
@@ -73,8 +72,8 @@ class TestRunClass(unittest.TestCase):
             'tests.fixtures.runner.class_with_underscore_methods',
         )
         results = run(mod)
-        names = [bound.__name__ for bound, _ in results]
-        self.assertEqual(names, ['public'])
+        names = [name for name, _ in results]
+        self.assertEqual(names, ['WithUnderscores.public'])
 
     def test_enter_and_exit_run_around_methods(self):
         mod = importlib.import_module(
@@ -93,8 +92,11 @@ class TestRunClass(unittest.TestCase):
         )
         results = run(mod)
         self.assertEqual(len(results), 2)
-        names = [bound.__name__ for bound, _ in results]
-        self.assertEqual(names, ['passes', 'fails'])
+        names = [name for name, _ in results]
+        self.assertEqual(
+            names,
+            ['HasFailure.passes', 'HasFailure.fails'],
+        )
         self.assertIsNone(results[0][1])
         self.assertIsInstance(results[1][1], AssertionError)
 
@@ -117,7 +119,7 @@ class TestRunClass(unittest.TestCase):
             'tests.fixtures.runner.class_mixed_with_function',
         )
         results = run(mod)
-        names = [bound.__qualname__ for bound, _ in results]
+        names = [name for name, _ in results]
         self.assertEqual(
             names,
             ['free_function', 'ClassUnit.method'],

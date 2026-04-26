@@ -7,25 +7,28 @@ from assertions._test_class import Test, _public_methods
 
 def run(
     module: ModuleType,
-) -> list[tuple[Callable, Exception | None]]:
-    results: list[tuple[Callable, Exception | None]] = []
+) -> list[tuple[str, Exception | None]]:
+    results: list[tuple[str, Exception | None]] = []
     for unit in discover(module):
         if isinstance(unit, type) and issubclass(unit, Test):
             instance = unit()
             with instance:
                 for name in _public_methods(unit):
                     bound = getattr(instance, name)
-                    try:
-                        bound()
-                    except Exception as exc:
-                        results.append((bound, exc))
-                    else:
-                        results.append((bound, None))
+                    _invoke(bound, bound.__qualname__, results)
         else:
-            try:
-                unit()
-            except Exception as exc:
-                results.append((unit, exc))
-            else:
-                results.append((unit, None))
+            _invoke(unit, unit.__qualname__, results)
     return results
+
+
+def _invoke(
+    func: Callable,
+    qualname: str,
+    results: list[tuple[str, Exception | None]],
+) -> None:
+    try:
+        func()
+    except Exception as exc:
+        results.append((qualname, exc))
+    else:
+        results.append((qualname, None))

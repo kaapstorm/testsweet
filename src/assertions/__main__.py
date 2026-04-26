@@ -14,14 +14,11 @@ def main(argv: list[str]) -> int:
     module = importlib.import_module(argv[0])
     results = run(module)
     failed = False
-    for func, exc in results:
+    for name, exc in results:
         if exc is None:
-            print(f'{func.__qualname__} ... ok')
+            print(f'{name} ... ok')
         else:
-            print(
-                f'{func.__qualname__} ... FAIL: '
-                f'{type(exc).__name__}: {exc}'
-            )
+            print(f'{name} ... FAIL: {type(exc).__name__}: {exc}')
             failed = True
     return 1 if failed else 0
 
