@@ -18,7 +18,7 @@ def main(argv: list[str]) -> int:
         if exc is None:
             print(f'{func.__name__} ... ok')
         else:
-            print(f'{func.__name__} ... FAIL: ' f'{type(exc).__name__}: {exc}')
+            print(f'{func.__name__} ... FAIL: {type(exc).__name__}: {exc}')
             failed = True
     return 1 if failed else 0
 
