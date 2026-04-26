@@ -8,6 +8,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "mypy",
     "pre-commit",
     "ruff",
 ]
@@ -17,3 +18,8 @@ line-length = 79
 
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "tests"]
+mypy_path = "src"
