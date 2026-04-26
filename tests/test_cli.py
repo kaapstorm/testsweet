@@ -52,6 +52,12 @@ class TestCli(unittest.TestCase):
         self.assertIn('Simple.first ... ok', result.stdout)
         self.assertIn('Simple.second ... ok', result.stdout)
 
+    def test_parameterized_indices_in_output(self):
+        result = _run_cli('tests.fixtures.runner.params_simple')
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('adds[0] ... ok', result.stdout)
+        self.assertIn('adds[1] ... ok', result.stdout)
+
 
 if __name__ == '__main__':
     unittest.main()
