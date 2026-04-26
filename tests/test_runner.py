@@ -126,5 +126,132 @@ class TestRunClass(unittest.TestCase):
         )
 
 
+class TestRunParamsEager(unittest.TestCase):
+    def test_runs_each_tuple_in_order(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_simple',
+        )
+        results = run(mod)
+        names = [name for name, _ in results]
+        self.assertEqual(names, ['adds[0]', 'adds[1]'])
+        for _, exc in results:
+            self.assertIsNone(exc)
+
+    def test_failure_recorded_at_correct_index(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_with_failure',
+        )
+        results = run(mod)
+        names = [name for name, _ in results]
+        self.assertEqual(
+            names,
+            ['adds[0]', 'adds[1]', 'adds[2]'],
+        )
+        self.assertIsNone(results[0][1])
+        self.assertIsInstance(results[1][1], AssertionError)
+        self.assertIsNone(results[2][1])
+
+    def test_empty_param_list_produces_no_results(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_empty',
+        )
+        self.assertEqual(run(mod), [])
+
+    def test_function_without_params_unchanged(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_no_decoration',
+        )
+        results = run(mod)
+        names = [name for name, _ in results]
+        self.assertEqual(names, ['plain', 'parameterized[0]'])
+        for _, exc in results:
+            self.assertIsNone(exc)
+
+    def test_accepts_generator(self):
+        # The generator was consumed at decoration time, so the second
+        # run() call sees the same materialized tuple.
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_generator',
+        )
+        first = run(mod)
+        second = run(mod)
+        self.assertEqual(
+            [name for name, _ in first],
+            ['adds[0]', 'adds[1]', 'adds[2]'],
+        )
+        self.assertEqual(
+            [name for name, _ in second],
+            ['adds[0]', 'adds[1]', 'adds[2]'],
+        )
+
+    def test_on_class_method(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_on_class_method',
+        )
+        results = run(mod)
+        names = [name for name, _ in results]
+        self.assertEqual(
+            names,
+            ['Cls.method[0]', 'Cls.method[1]'],
+        )
+        for _, exc in results:
+            self.assertIsNone(exc)
+
+
+class TestRunParamsLazy(unittest.TestCase):
+    def test_runs_each_yielded_tuple(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_lazy_generator',
+        )
+        # Force a fresh import so the generator is freshly created
+        # for this test (other tests in this class may also import
+        # this fixture and consume the generator).
+        importlib.reload(mod)
+        results = run(mod)
+        names = [name for name, _ in results]
+        self.assertEqual(
+            names,
+            ['adds[0]', 'adds[1]', 'adds[2]'],
+        )
+        for _, exc in results:
+            self.assertIsNone(exc)
+
+    def test_generator_is_consumed_after_first_run(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_lazy_generator',
+        )
+        importlib.reload(mod)
+        first = run(mod)
+        second = run(mod)
+        self.assertEqual(len(first), 3)
+        self.assertEqual(second, [])
+
+    def test_list_is_idempotent(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_lazy_list',
+        )
+        importlib.reload(mod)
+        first = run(mod)
+        second = run(mod)
+        names_first = [name for name, _ in first]
+        names_second = [name for name, _ in second]
+        self.assertEqual(names_first, ['equals[0]', 'equals[1]'])
+        self.assertEqual(names_second, ['equals[0]', 'equals[1]'])
+
+    def test_on_class_method(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_lazy_on_class_method',
+        )
+        importlib.reload(mod)
+        results = run(mod)
+        names = [name for name, _ in results]
+        self.assertEqual(
+            names,
+            ['Cls.method[0]', 'Cls.method[1]'],
+        )
+        for _, exc in results:
+            self.assertIsNone(exc)
+
+
 if __name__ == '__main__':
     unittest.main()
