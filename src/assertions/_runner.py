@@ -2,6 +2,7 @@ from types import ModuleType
 from typing import Callable
 
 from assertions._discover import discover
+from assertions._params import PARAMS_MARKER
 from assertions._test_class import Test, _public_methods
 
 
@@ -26,9 +27,20 @@ def _invoke(
     qualname: str,
     results: list[tuple[str, Exception | None]],
 ) -> None:
-    try:
-        func()
-    except Exception as exc:
-        results.append((qualname, exc))
-    else:
-        results.append((qualname, None))
+    params = getattr(func, PARAMS_MARKER, None)
+    if params is None:
+        try:
+            func()
+        except Exception as exc:
+            results.append((qualname, exc))
+        else:
+            results.append((qualname, None))
+        return
+    for i, args in enumerate(params):
+        name = f'{qualname}[{i}]'
+        try:
+            func(*args)
+        except Exception as exc:
+            results.append((name, exc))
+        else:
+            results.append((name, None))
