@@ -1,0 +1,7 @@
+[project]
+name = "Assertions"
+version = "0.1.0"
+description = "Python testing for humans"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
