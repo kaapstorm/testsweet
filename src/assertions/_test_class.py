@@ -1,5 +1,3 @@
-from typing import Callable
-
 from assertions._markers import TEST_MARKER
 
 
@@ -20,9 +18,9 @@ class Test:
         return None
 
 
-def _public_methods(cls: type) -> list[Callable]:
+def _public_methods(cls: type) -> list[str]:
     seen: set[str] = set()
-    out: list[Callable] = []
+    out: list[str] = []
     for klass in cls.__mro__:
         if klass is object:
             continue
@@ -34,5 +32,5 @@ def _public_methods(cls: type) -> list[Callable]:
             if name in seen:
                 continue
             seen.add(name)
-            out.append(getattr(cls, name))
+            out.append(name)
     return out

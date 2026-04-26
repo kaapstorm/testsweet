@@ -13,8 +13,8 @@ def run(
         if isinstance(unit, type) and issubclass(unit, Test):
             instance = unit()
             with instance:
-                for func in _public_methods(unit):
-                    bound = getattr(instance, func.__name__)
+                for name in _public_methods(unit):
+                    bound = getattr(instance, name)
                     try:
                         bound()
                     except Exception as exc:

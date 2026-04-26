@@ -54,8 +54,10 @@ class TestPublicMethods(unittest.TestCase):
             def a_method(self):
                 pass
 
-        names = [f.__name__ for f in _public_methods(Cls)]
-        self.assertEqual(names, ['b_method', 'a_method'])
+        self.assertEqual(
+            _public_methods(Cls),
+            ['b_method', 'a_method'],
+        )
 
     def test_excludes_underscore_prefixed_methods(self):
         class Cls(Test):
@@ -68,19 +70,17 @@ class TestPublicMethods(unittest.TestCase):
             def __dunder(self):
                 pass
 
-        names = [f.__name__ for f in _public_methods(Cls)]
-        self.assertEqual(names, ['public'])
+        self.assertEqual(_public_methods(Cls), ['public'])
 
     def test_includes_inherited_methods_with_leaf_priority(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_with_inheritance',
         )
-        names = [f.__name__ for f in _public_methods(mod.Leaf)]
         # Leaf-defined first in definition order, then base's
         # remaining methods. The override 'overridden' appears once,
         # in the leaf's position.
         self.assertEqual(
-            names,
+            _public_methods(mod.Leaf),
             ['leaf_method', 'overridden', 'base_method'],
         )
 
@@ -92,10 +92,6 @@ class TestPublicMethodsCurrentBehavior(unittest.TestCase):
     # narrow what counts as a "public method" should update them.
 
     def test_diamond_inheritance_follows_mro(self):
-        # MRO is leaf, then bases in declaration order. Methods unique
-        # to a base appear in that base's position; a method defined
-        # on multiple ancestors is taken from the first MRO ancestor
-        # that defines it.
         class A(Test):
             def from_a(self):
                 pass
@@ -114,15 +110,12 @@ class TestPublicMethodsCurrentBehavior(unittest.TestCase):
             def from_leaf(self):
                 pass
 
-        names = [f.__name__ for f in _public_methods(Leaf)]
         self.assertEqual(
-            names,
+            _public_methods(Leaf),
             ['from_leaf', 'from_a', 'shared', 'from_b'],
         )
 
     def test_staticmethod_is_included(self):
-        # Python 3.10+ made staticmethod callable, so the
-        # `callable(value)` filter does not exclude it.
         class Cls(Test):
             @staticmethod
             def a_static():
@@ -131,16 +124,12 @@ class TestPublicMethodsCurrentBehavior(unittest.TestCase):
             def regular(self):
                 pass
 
-        names = [f.__name__ for f in _public_methods(Cls)]
-        self.assertEqual(names, ['a_static', 'regular'])
+        self.assertEqual(
+            _public_methods(Cls),
+            ['a_static', 'regular'],
+        )
 
     def test_classmethod_is_excluded(self):
-        # The classmethod descriptor stored in vars(cls) is not
-        # callable directly (unlike staticmethod), so the
-        # `callable(value)` filter drops it. Accessing it via
-        # getattr(cls, name) would yield a bound method, which is
-        # callable — but _public_methods looks at vars(cls), not
-        # getattr.
         class Cls(Test):
             @classmethod
             def a_class(cls):
@@ -149,8 +138,7 @@ class TestPublicMethodsCurrentBehavior(unittest.TestCase):
             def regular(self):
                 pass
 
-        names = [f.__name__ for f in _public_methods(Cls)]
-        self.assertEqual(names, ['regular'])
+        self.assertEqual(_public_methods(Cls), ['regular'])
 
 
 if __name__ == '__main__':
