@@ -46,6 +46,12 @@ class TestCli(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('ModuleNotFoundError', result.stderr)
 
+    def test_class_method_qualname_in_output(self):
+        result = _run_cli('tests.fixtures.runner.class_simple')
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('Simple.first ... ok', result.stdout)
+        self.assertIn('Simple.second ... ok', result.stdout)
+
 
 if __name__ == '__main__':
     unittest.main()

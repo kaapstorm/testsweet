@@ -16,9 +16,12 @@ def main(argv: list[str]) -> int:
     failed = False
     for func, exc in results:
         if exc is None:
-            print(f'{func.__name__} ... ok')
+            print(f'{func.__qualname__} ... ok')
         else:
-            print(f'{func.__name__} ... FAIL: {type(exc).__name__}: {exc}')
+            print(
+                f'{func.__qualname__} ... FAIL: '
+                f'{type(exc).__name__}: {exc}'
+            )
             failed = True
     return 1 if failed else 0
 
