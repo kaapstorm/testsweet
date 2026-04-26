@@ -1,0 +1,89 @@
+import importlib
+import unittest
+
+from assertions import Test, discover
+from assertions._markers import TEST_MARKER
+from assertions._test_class import _public_methods
+
+
+class TestMarkerPropagation(unittest.TestCase):
+    def test_test_itself_has_no_marker(self):
+        self.assertFalse(hasattr(Test, TEST_MARKER))
+
+    def test_subclass_has_marker(self):
+        class Sub(Test):
+            pass
+
+        self.assertIs(getattr(Sub, TEST_MARKER), True)
+
+    def test_sub_subclass_has_marker(self):
+        class Sub(Test):
+            pass
+
+        class SubSub(Sub):
+            pass
+
+        self.assertIs(getattr(SubSub, TEST_MARKER), True)
+
+
+class TestDiscoverIntegration(unittest.TestCase):
+    def test_discover_returns_test_subclass(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_simple',
+        )
+        result = discover(mod)
+        self.assertEqual([cls.__name__ for cls in result], ['Simple'])
+
+    def test_discover_skips_imported_test_base_itself(self):
+        # Import Test into a namespace and confirm discover doesn't
+        # return the Test class itself.
+        import types
+
+        mod = types.ModuleType('synthetic')
+        mod.Test = Test  # type: ignore[attr-defined]
+        result = discover(mod)
+        self.assertEqual(result, [])
+
+
+class TestPublicMethods(unittest.TestCase):
+    def test_returns_leaf_methods_in_definition_order(self):
+        class Cls(Test):
+            def b_method(self):
+                pass
+
+            def a_method(self):
+                pass
+
+        names = [f.__name__ for f in _public_methods(Cls)]
+        self.assertEqual(names, ['b_method', 'a_method'])
+
+    def test_excludes_underscore_prefixed_methods(self):
+        class Cls(Test):
+            def _private(self):
+                pass
+
+            def public(self):
+                pass
+
+            def __dunder(self):
+                pass
+
+        names = [f.__name__ for f in _public_methods(Cls)]
+        self.assertEqual(names, ['public'])
+
+    def test_includes_inherited_methods_with_leaf_priority(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_with_inheritance',
+        )
+        names = [f.__name__ for f in _public_methods(mod.Leaf)]
+        # Leaf-defined first in definition order, then base's
+        # remaining methods. The override 'overridden' appears once,
+        # in the leaf's position.
+        self.assertEqual(
+            names,
+            ['leaf_method', 'overridden', 'base_method'],
+        )
+
+
+if __name__ == '__main__':
+    unittest.main()
