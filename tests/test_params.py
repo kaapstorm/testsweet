@@ -1,4 +1,3 @@
-import importlib
 import unittest
 
 from assertions import test_params, test_params_lazy
@@ -96,20 +95,6 @@ class TestParamsLazy(unittest.TestCase):
             return a + b
 
         self.assertEqual(f(1, 2), 3)
-
-
-class TestDiscoverIntegration(unittest.TestCase):
-    def test_discover_returns_test_params_function(self):
-        # Using the params_simple fixture (created in Task 4) — until
-        # Task 4 lands, this test will fail at module-import time.
-        mod = importlib.import_module(
-            'tests.fixtures.runner.params_simple',
-        )
-        from assertions import discover
-
-        result = discover(mod)
-        names = [f.__name__ for f in result]
-        self.assertIn('adds', names)
 
 
 if __name__ == '__main__':

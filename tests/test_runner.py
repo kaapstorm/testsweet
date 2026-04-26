@@ -203,9 +203,8 @@ class TestRunParamsLazy(unittest.TestCase):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_lazy_generator',
         )
-        # Force a fresh import so the generator is freshly created
-        # for this test (other tests in this class may also import
-        # this fixture and consume the generator).
+        # Re-import so the module-level generator is freshly created
+        # — earlier tests in this class consume it.
         importlib.reload(mod)
         results = run(mod)
         names = [name for name, _ in results]

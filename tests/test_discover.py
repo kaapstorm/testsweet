@@ -59,6 +59,14 @@ class TestDiscover(unittest.TestCase):
         second = discover(mod)
         self.assertEqual([f.__name__ for f in second], ['a', 'b', 'c'])
 
+    def test_returns_test_params_decorated_function(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_simple',
+        )
+        result = discover(mod)
+        names = [f.__name__ for f in result]
+        self.assertIn('adds', names)
+
 
 if __name__ == '__main__':
     unittest.main()
