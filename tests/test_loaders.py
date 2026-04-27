@@ -17,7 +17,10 @@ class TestDottedNameForPath(unittest.TestCase):
             (sub / '__init__.py').write_text('')
             target = sub / 'mod.py'
             target.write_text('')
-            dotted, rootdir = _dotted_name_for_path(target)
+            info = _dotted_name_for_path(target)
+            self.assertIsNotNone(info)
+            assert info is not None  # narrow for mypy
+            dotted, rootdir = info
             self.assertEqual(dotted, 'pkg.sub.mod')
             self.assertEqual(rootdir, root)
 
@@ -26,9 +29,7 @@ class TestDottedNameForPath(unittest.TestCase):
             root = pathlib.Path(tmp)
             target = root / 'loose.py'
             target.write_text('')
-            dotted, rootdir = _dotted_name_for_path(target)
-            self.assertIsNone(dotted)
-            self.assertIsNone(rootdir)
+            self.assertIsNone(_dotted_name_for_path(target))
 
     def test_top_level_package_file(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -38,7 +39,10 @@ class TestDottedNameForPath(unittest.TestCase):
             (pkg / '__init__.py').write_text('')
             target = pkg / 'mod.py'
             target.write_text('')
-            dotted, rootdir = _dotted_name_for_path(target)
+            info = _dotted_name_for_path(target)
+            self.assertIsNotNone(info)
+            assert info is not None
+            dotted, rootdir = info
             self.assertEqual(dotted, 'pkg.mod')
             self.assertEqual(rootdir, root)
 

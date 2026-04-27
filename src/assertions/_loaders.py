@@ -19,18 +19,19 @@ def _load_path(target: str) -> ModuleType:
 
 
 def _load_path_for_walk(path: pathlib.Path) -> ModuleType:
-    dotted, rootdir = _dotted_name_for_path(path)
-    if dotted is not None and rootdir is not None:
-        rootdir_str = str(rootdir)
-        if rootdir_str not in sys.path:
-            sys.path.insert(0, rootdir_str)
-        return importlib.import_module(dotted)
-    return _exec_module_from_path(path)
+    info = _dotted_name_for_path(path)
+    if info is None:
+        return _exec_module_from_path(path)
+    dotted, rootdir = info
+    rootdir_str = str(rootdir)
+    if rootdir_str not in sys.path:
+        sys.path.insert(0, rootdir_str)
+    return importlib.import_module(dotted)
 
 
 def _dotted_name_for_path(
     path: pathlib.Path,
-) -> tuple[str | None, pathlib.Path | None]:
+) -> tuple[str, pathlib.Path] | None:
     # Walk up while __init__.py is present; collect names. The
     # rootdir is the first ancestor that does NOT contain
     # __init__.py.
@@ -42,7 +43,6 @@ def _dotted_name_for_path(
             break
         parent = parent.parent
     if len(parts) == 1:
-        # No package chain; loose file. Caller falls back to
-        # spec_from_file_location.
-        return None, None
+        # Loose file; caller falls back to spec_from_file_location.
+        return None
     return '.'.join(parts), parent
