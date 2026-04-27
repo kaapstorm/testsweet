@@ -3,7 +3,9 @@ from typing import Callable
 
 from assertions._discover import discover
 from assertions._params import PARAMS_MARKER
-from assertions._test_class import Test, _public_methods
+from contextlib import nullcontext
+
+from assertions._test_class import _public_methods
 
 
 def run(
@@ -38,7 +40,7 @@ def _build_plan(units, names: list[str]) -> dict[str, set[str] | None]:
             unit = discovered_unit_names.get(head)
             if (
                 unit is None
-                or not (isinstance(unit, type) and issubclass(unit, Test))
+                or not isinstance(unit, type)
                 or method not in _public_methods(unit)
             ):
                 unmatched.append(name)
@@ -64,9 +66,14 @@ def _run_unit(
     method_filter: set[str] | None,
     results: list[tuple[str, Exception | None]],
 ) -> None:
-    if isinstance(unit, type) and issubclass(unit, Test):
+    if isinstance(unit, type):
         instance = unit()
-        with instance:
+        cm = (
+            instance
+            if hasattr(instance, '__enter__')
+            else nullcontext(instance)
+        )
+        with cm:
             for name in _public_methods(unit):
                 if method_filter is not None and name not in method_filter:
                     continue
