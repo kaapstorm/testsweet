@@ -4,7 +4,28 @@ from types import ModuleType
 from assertions._classify import _resolve_dotted
 from assertions._config import DiscoveryConfig
 from assertions._loaders import _load_path, _load_path_for_walk
-from assertions._walk import _walk_directory
+from assertions._walk import (
+    _build_exclude_set,
+    _resolve_include_paths,
+    _walk_directory,
+)
+
+
+def discover_targets(
+    argv: list[str],
+    config: DiscoveryConfig,
+) -> list[tuple[ModuleType, list[str] | None]]:
+    excluded = _build_exclude_set(config)
+    raw: list[tuple[ModuleType, list[str] | None]] = []
+    if not argv:
+        raw.extend(_bare_invocation(config, excluded))
+    else:
+        for arg in argv:
+            raw.extend(parse_target(arg, config, excluded))
+    groups: list[tuple[ModuleType, list[str] | None]] = []
+    for module, names in raw:
+        _add_to_groups(groups, module, names)
+    return groups
 
 
 def parse_target(
@@ -29,3 +50,39 @@ def parse_target(
             ]
         return [(_load_path(target), None)]
     return [_resolve_dotted(target)]
+
+
+def _bare_invocation(
+    config: DiscoveryConfig,
+    excluded: set[pathlib.Path],
+) -> list[tuple[ModuleType, list[str] | None]]:
+    roots = _resolve_include_paths(config)
+    if not roots:
+        roots = [pathlib.Path('.').resolve()]
+    out: list[tuple[ModuleType, list[str] | None]] = []
+    for root in roots:
+        if root.is_file() and root.suffix == '.py':
+            out.append((_load_path_for_walk(root), None))
+        elif root.is_dir():
+            for path in _walk_directory(
+                root,
+                config=config,
+                excluded=excluded,
+            ):
+                out.append((_load_path_for_walk(path), None))
+    return out
+
+
+def _add_to_groups(
+    groups: list[tuple[ModuleType, list[str] | None]],
+    module: ModuleType,
+    names: list[str] | None,
+) -> None:
+    for i, (existing_module, existing_names) in enumerate(groups):
+        if existing_module is module:
+            if existing_names is None or names is None:
+                groups[i] = (module, None)
+            else:
+                groups[i] = (module, existing_names + names)
+            return
+    groups.append((module, names))
