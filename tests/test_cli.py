@@ -29,17 +29,14 @@ class TestCli(unittest.TestCase):
         result = _run_cli()
         self.assertEqual(result.returncode, 2)
         self.assertIn(
-            'usage: python -m assertions <dotted.module>',
+            'usage: python -m assertions <target> [<target>...]',
             result.stderr,
         )
 
     def test_two_arguments_exits_two(self):
         result = _run_cli('a', 'b')
-        self.assertEqual(result.returncode, 2)
-        self.assertIn(
-            'usage: python -m assertions <dotted.module>',
-            result.stderr,
-        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('ModuleNotFoundError', result.stderr)
 
     def test_unimportable_module_propagates(self):
         result = _run_cli('not_a_real_module_xyzzy')
