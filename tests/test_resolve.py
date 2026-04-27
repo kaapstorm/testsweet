@@ -1,6 +1,6 @@
+import functools
 import importlib
 import unittest
-from contextlib import AbstractContextManager
 
 from assertions._resolve import resolve_units
 
@@ -10,26 +10,17 @@ class TestResolveUnits(unittest.TestCase):
         mod = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
-        generators = resolve_units(mod)
-        self.assertEqual(len(generators), 2)
-        first_pairs = list(generators[0])
-        self.assertEqual(len(first_pairs), 1)
-        name, call = first_pairs[0]
-        self.assertEqual(name, 'passes_one')
-        self.assertIs(
-            call,
-            getattr(mod, 'passes_one'),
-        )
+        pairs = list(resolve_units(mod))
+        names = [name for name, _ in pairs]
+        self.assertEqual(names, ['passes_one', 'passes_two'])
+        # The first pair's callable is the function itself.
+        self.assertIs(pairs[0][1], getattr(mod, 'passes_one'))
 
     def test_parameterized_function_yields_indexed_partials(self):
-        import functools
-
         mod = importlib.import_module(
             'tests.fixtures.runner.params_simple',
         )
-        generators = resolve_units(mod)
-        self.assertEqual(len(generators), 1)
-        pairs = list(generators[0])
+        pairs = list(resolve_units(mod))
         names = [name for name, _ in pairs]
         self.assertEqual(names, ['adds[0]', 'adds[1]'])
         for _, call in pairs:
@@ -40,11 +31,9 @@ class TestResolveUnits(unittest.TestCase):
             'tests.fixtures.runner.class_calls_recorded',
         )
         mod.CALLS.clear()
-        generators = resolve_units(mod)
-        self.assertEqual(len(generators), 1)
-        # Consuming the generator should run __enter__ once before
-        # any method, and __exit__ once after the last method.
-        for _name, call in generators[0]:
+        # Iterating the flat iterator runs __enter__ once before any
+        # method call and __exit__ once after the last method.
+        for _name, call in resolve_units(mod):
             call()
         self.assertEqual(
             mod.CALLS,
@@ -55,20 +44,16 @@ class TestResolveUnits(unittest.TestCase):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
-        generators = resolve_units(mod)
-        self.assertEqual(len(generators), 1)
-        pairs = list(generators[0])
-        names = [name for name, _ in pairs]
+        names = [name for name, _ in resolve_units(mod)]
         self.assertEqual(names, ['Simple.first', 'Simple.second'])
 
     def test_class_method_selector_filters(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
-        generators = resolve_units(mod, names=['Simple.first'])
-        self.assertEqual(len(generators), 1)
-        pairs = list(generators[0])
-        names = [name for name, _ in pairs]
+        names = [
+            name for name, _ in resolve_units(mod, names=['Simple.first'])
+        ]
         self.assertEqual(names, ['Simple.first'])
 
     def test_unmatched_name_raises_lookup_error(self):
@@ -80,10 +65,9 @@ class TestResolveUnits(unittest.TestCase):
         self.assertIn('nonexistent', str(ctx.exception))
 
     def test_validation_runs_before_any_iteration(self):
-        # If any name is unmatched, no generator is created or
-        # iterated. The class_calls_recorded fixture would record
-        # 'enter' if its generator were started; verify CALLS stays
-        # empty when LookupError fires.
+        # If any name is unmatched, the iterator is never advanced
+        # because LookupError is raised at resolve_units(...) call
+        # time, before chain.from_iterable is constructed.
         mod = importlib.import_module(
             'tests.fixtures.runner.class_calls_recorded',
         )
@@ -99,47 +83,39 @@ class TestResolveUnits(unittest.TestCase):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
-        generators = resolve_units(
-            mod,
-            names=['Simple', 'Simple.first'],
-        )
-        pairs = list(generators[0])
-        names = [name for name, _ in pairs]
+        names = [
+            name
+            for name, _ in resolve_units(
+                mod,
+                names=['Simple', 'Simple.first'],
+            )
+        ]
         # Both methods run, not just the one named in the selector.
         self.assertEqual(names, ['Simple.first', 'Simple.second'])
 
-    def test_mixed_module_yields_one_generator_per_unit(self):
+    def test_mixed_module_yields_pairs_in_order(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_mixed_with_function',
         )
-        generators = resolve_units(mod)
-        self.assertEqual(len(generators), 2)
-        all_names = []
-        for gen in generators:
-            for name, _ in gen:
-                all_names.append(name)
+        names = [name for name, _ in resolve_units(mod)]
         self.assertEqual(
-            all_names,
+            names,
             ['free_function', 'ClassUnit.method'],
         )
 
-    def test_empty_module_returns_empty_list(self):
+    def test_empty_module_returns_empty_iterator(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.empty',
         )
-        self.assertEqual(resolve_units(mod), [])
+        self.assertEqual(list(resolve_units(mod)), [])
 
     def test_no_names_means_no_filtering(self):
         # When names is None, every discovered unit appears.
         mod = importlib.import_module(
             'tests.fixtures.runner.has_failure',
         )
-        generators = resolve_units(mod)
-        all_names = []
-        for gen in generators:
-            for name, _ in gen:
-                all_names.append(name)
-        self.assertEqual(all_names, ['passes', 'fails'])
+        names = [name for name, _ in resolve_units(mod)]
+        self.assertEqual(names, ['passes', 'fails'])
 
 
 if __name__ == '__main__':

@@ -8,12 +8,11 @@ def run(
     names: list[str] | None = None,
 ) -> list[tuple[str, Exception | None]]:
     results: list[tuple[str, Exception | None]] = []
-    for unit_iter in resolve_units(module, names):
-        for name, call in unit_iter:
-            try:
-                call()
-            except Exception as exc:
-                results.append((name, exc))
-            else:
-                results.append((name, None))
+    for name, call in resolve_units(module, names):
+        try:
+            call()
+        except Exception as exc:
+            results.append((name, exc))
+        else:
+            results.append((name, None))
     return results

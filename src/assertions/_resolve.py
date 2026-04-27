@@ -1,4 +1,5 @@
 import functools
+import itertools
 from contextlib import nullcontext
 from types import ModuleType
 from typing import Any, Callable, Iterator
@@ -11,17 +12,18 @@ from assertions._params import PARAMS_MARKER
 def resolve_units(
     module: ModuleType,
     names: list[str] | None = None,
-) -> list[Iterator[tuple[str, Callable[[], Any]]]]:
+) -> Iterator[tuple[str, Callable[[], Any]]]:
     units = discover(module)
     if names is None:
-        return [_expand_unit(unit, None) for unit in units]
+        return itertools.chain.from_iterable(
+            _expand_unit(unit, None) for unit in units
+        )
     plan = _build_plan(units, names)
-    out: list[Iterator[tuple[str, Callable[[], Any]]]] = []
-    for unit in units:
-        if unit.__qualname__ not in plan:
-            continue
-        out.append(_expand_unit(unit, plan[unit.__qualname__]))
-    return out
+    return itertools.chain.from_iterable(
+        _expand_unit(unit, plan[unit.__qualname__])
+        for unit in units
+        if unit.__qualname__ in plan
+    )
 
 
 def _expand_unit(
