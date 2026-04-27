@@ -374,6 +374,19 @@ class TestDecoratedClass(unittest.TestCase):
             ['enter', 'test', 'exit'],
         )
 
+    def test_class_with_enter_only_propagates_type_error(self):
+        # The runner only checks for __enter__; a class missing
+        # __exit__ falls through to Python's `with` machinery, which
+        # raises TypeError ("does not support the context manager
+        # protocol") before __enter__ is called. The error escapes
+        # run() rather than being recorded as a test failure.
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_enter_only',
+        )
+        with self.assertRaises(TypeError) as ctx:
+            run(mod)
+        self.assertIn('__exit__', str(ctx.exception))
+
 
 if __name__ == '__main__':
     unittest.main()

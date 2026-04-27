@@ -20,6 +20,19 @@ class TestDecoratorOnClass(unittest.TestCase):
 
         self.assertFalse(hasattr(Cls, TEST_MARKER))
 
+    def test_marker_propagates_to_subclass(self):
+        # The marker is set as a class attribute, so subclasses
+        # inherit it via __mro__ lookup. Both parent and child are
+        # discovered as test units when both live in a module.
+        @test
+        class Parent:
+            pass
+
+        class Child(Parent):
+            pass
+
+        self.assertIs(getattr(Child, TEST_MARKER), True)
+
 
 class TestDiscoverIntegration(unittest.TestCase):
     def test_discover_returns_decorated_class(self):
