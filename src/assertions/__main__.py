@@ -5,11 +5,11 @@ from types import ModuleType
 from assertions._config import DiscoveryConfig, load_config
 from assertions._runner import run
 from assertions._loaders import _load_path_for_walk
-from assertions._targets import (
+from assertions._targets import parse_target
+from assertions._walk import (
     _build_exclude_set,
     _resolve_include_paths,
     _walk_directory,
-    parse_target,
 )
 
 
