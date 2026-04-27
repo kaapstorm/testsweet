@@ -51,14 +51,17 @@ def _load_path_for_walk(path: pathlib.Path) -> ModuleType:
 
 def _walk_directory(root: pathlib.Path) -> list[pathlib.Path]:
     out: list[pathlib.Path] = []
-    for name in sorted(os.listdir(root)):
-        entry = root / name
-        if entry.is_dir():
-            if _is_excluded_dir(name):
+    with os.scandir(root) as it:
+        entries = sorted(it, key=lambda e: e.name)
+    for entry in entries:
+        if entry.is_dir(follow_symlinks=False):
+            if _is_excluded_dir(entry.name):
                 continue
-            out.extend(_walk_directory(entry))
-        elif name.endswith('.py'):
-            out.append(entry)
+            out.extend(_walk_directory(pathlib.Path(entry.path)))
+        elif entry.is_file(follow_symlinks=False) and entry.name.endswith(
+            '.py'
+        ):
+            out.append(pathlib.Path(entry.path))
     return out
 
 
