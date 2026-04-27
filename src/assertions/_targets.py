@@ -1,9 +1,12 @@
+import fnmatch
 import importlib
 import importlib.util
 import os
 import pathlib
 import sys
 from types import ModuleType
+
+from assertions._config import DiscoveryConfig
 
 
 _EXCLUDED_DIR_NAMES = frozenset({'__pycache__', 'node_modules'})
@@ -49,7 +52,11 @@ def _load_path_for_walk(path: pathlib.Path) -> ModuleType:
     return _exec_module_from_path(path)
 
 
-def _walk_directory(root: pathlib.Path) -> list[pathlib.Path]:
+def _walk_directory(
+    root: pathlib.Path,
+    config: DiscoveryConfig | None = None,
+    excluded: set[pathlib.Path] | None = None,
+) -> list[pathlib.Path]:
     out: list[pathlib.Path] = []
     with os.scandir(root) as it:
         entries = sorted(it, key=lambda e: e.name)
@@ -57,12 +64,37 @@ def _walk_directory(root: pathlib.Path) -> list[pathlib.Path]:
         if entry.is_dir(follow_symlinks=False):
             if _is_excluded_dir(entry.name):
                 continue
-            out.extend(_walk_directory(pathlib.Path(entry.path)))
+            out.extend(
+                _walk_directory(
+                    pathlib.Path(entry.path),
+                    config=config,
+                    excluded=excluded,
+                )
+            )
         elif entry.is_file(follow_symlinks=False) and entry.name.endswith(
             '.py'
         ):
-            out.append(pathlib.Path(entry.path))
+            path = pathlib.Path(entry.path)
+            if not _accepts_file(path, config, excluded):
+                continue
+            out.append(path)
     return out
+
+
+def _accepts_file(
+    path: pathlib.Path,
+    config: DiscoveryConfig | None,
+    excluded: set[pathlib.Path] | None,
+) -> bool:
+    if excluded is not None and path.resolve() in excluded:
+        return False
+    if config is not None and config.test_files:
+        if not any(
+            fnmatch.fnmatch(path.name, pattern)
+            for pattern in config.test_files
+        ):
+            return False
+    return True
 
 
 def _is_excluded_dir(name: str) -> bool:
