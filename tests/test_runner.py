@@ -252,5 +252,100 @@ class TestRunParamsLazy(unittest.TestCase):
             self.assertIsNone(exc)
 
 
+class TestRunNames(unittest.TestCase):
+    def test_filters_to_named_function(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.all_pass',
+        )
+        results = run(mod, names=['passes_one'])
+        self.assertEqual(
+            [name for name, _ in results],
+            ['passes_one'],
+        )
+
+    def test_class_name_runs_all_methods(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_simple',
+        )
+        results = run(mod, names=['Simple'])
+        self.assertEqual(
+            [name for name, _ in results],
+            ['Simple.first', 'Simple.second'],
+        )
+
+    def test_class_method_selector_runs_one(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_simple',
+        )
+        results = run(mod, names=['Simple.first'])
+        self.assertEqual(
+            [name for name, _ in results],
+            ['Simple.first'],
+        )
+
+    def test_two_method_selectors_run_in_vars_order(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_simple',
+        )
+        results = run(
+            mod,
+            names=['Simple.second', 'Simple.first'],
+        )
+        # vars() order, NOT argv order — Simple.first defined first.
+        self.assertEqual(
+            [name for name, _ in results],
+            ['Simple.first', 'Simple.second'],
+        )
+
+    def test_class_form_wins_over_method_form(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_simple',
+        )
+        results = run(
+            mod,
+            names=['Simple', 'Simple.first'],
+        )
+        self.assertEqual(
+            [name for name, _ in results],
+            ['Simple.first', 'Simple.second'],
+        )
+
+    def test_unmatched_name_raises_lookup_error(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.all_pass',
+        )
+        with self.assertRaises(LookupError) as ctx:
+            run(mod, names=['nonexistent'])
+        self.assertIn('nonexistent', str(ctx.exception))
+
+    def test_validation_runs_before_execution(self):
+        # If any name is unmatched, NO test runs — the matched ones
+        # are not partially executed before the error.
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_calls_recorded',
+        )
+        mod.CALLS.clear()
+        with self.assertRaises(LookupError):
+            run(mod, names=['Recorded.first', 'Recorded.nonexistent'])
+        self.assertEqual(mod.CALLS, [])
+
+    def test_parameterized_function_selector_runs_all_params(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.params_simple',
+        )
+        results = run(mod, names=['adds'])
+        self.assertEqual(
+            [name for name, _ in results],
+            ['adds[0]', 'adds[1]'],
+        )
+
+    def test_class_method_unknown_method_raises(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_simple',
+        )
+        with self.assertRaises(LookupError):
+            run(mod, names=['Simple.nonexistent'])
+
+
 if __name__ == '__main__':
     unittest.main()
