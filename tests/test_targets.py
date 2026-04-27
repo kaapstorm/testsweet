@@ -215,6 +215,23 @@ class TestDottedNameForPath(unittest.TestCase):
 
 
 class TestParseTargetDirectory(unittest.TestCase):
+    # parse_target on a directory imports each discovered .py file,
+    # which adds entries to sys.modules. Snapshot and restore so
+    # short-lived tmp-dir module names (`a`, `b`, etc.) don't leak
+    # between tests and shadow each other on subsequent runs.
+
+    def setUp(self):
+        import sys
+
+        self._saved_modules = dict(sys.modules)
+
+    def tearDown(self):
+        import sys
+
+        for name in list(sys.modules):
+            if name not in self._saved_modules:
+                del sys.modules[name]
+
     def test_directory_yields_one_entry_per_py_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
