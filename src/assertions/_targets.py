@@ -11,18 +11,24 @@ from assertions._walk import (
 )
 
 
+# A discovered test unit: a module, plus an optional list of selectors
+# (dotted-name tails like 'Foo.bar') narrowing what to run within it.
+# `None` means "run everything in this module".
+TargetGroup = tuple[ModuleType, list[str] | None]
+
+
 def discover_targets(
     argv: list[str],
     config: DiscoveryConfig,
-) -> list[tuple[ModuleType, list[str] | None]]:
+) -> list[TargetGroup]:
     excluded = _build_exclude_set(config)
-    raw: list[tuple[ModuleType, list[str] | None]] = []
+    raw: list[TargetGroup] = []
     if not argv:
         raw.extend(_bare_invocation(config, excluded))
     else:
         for arg in argv:
             raw.extend(parse_target(arg, config, excluded))
-    groups: list[tuple[ModuleType, list[str] | None]] = []
+    groups: list[TargetGroup] = []
     for module, names in raw:
         _add_to_groups(groups, module, names)
     return groups
@@ -32,7 +38,7 @@ def parse_target(
     target: str,
     config: DiscoveryConfig | None = None,
     excluded: set[pathlib.Path] | None = None,
-) -> list[tuple[ModuleType, list[str] | None]]:
+) -> list[TargetGroup]:
     if (
         '/' in target
         or target.endswith('.py')
@@ -55,11 +61,11 @@ def parse_target(
 def _bare_invocation(
     config: DiscoveryConfig,
     excluded: set[pathlib.Path],
-) -> list[tuple[ModuleType, list[str] | None]]:
+) -> list[TargetGroup]:
     roots = _resolve_include_paths(config)
     if not roots:
         roots = [pathlib.Path('.').resolve()]
-    out: list[tuple[ModuleType, list[str] | None]] = []
+    out: list[TargetGroup] = []
     for root in roots:
         if root.is_file() and root.suffix == '.py':
             out.append((_load_path_for_walk(root), None))
@@ -74,7 +80,7 @@ def _bare_invocation(
 
 
 def _add_to_groups(
-    groups: list[tuple[ModuleType, list[str] | None]],
+    groups: list[TargetGroup],
     module: ModuleType,
     names: list[str] | None,
 ) -> None:

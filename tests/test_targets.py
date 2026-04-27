@@ -1,9 +1,11 @@
+import contextlib
 import importlib
-import os
 import pathlib
+import sys
 import tempfile
 import unittest
 
+from assertions._config import DiscoveryConfig
 from assertions._targets import discover_targets, parse_target
 
 
@@ -157,20 +159,14 @@ class TestDiscoverTargets(unittest.TestCase):
     # short-lived tmp-dir module names don't leak between tests.
 
     def setUp(self):
-        import sys
-
         self._saved_modules = dict(sys.modules)
 
     def tearDown(self):
-        import sys
-
         for name in list(sys.modules):
             if name not in self._saved_modules:
                 del sys.modules[name]
 
     def test_single_dotted_module(self):
-        from assertions._config import DiscoveryConfig
-
         config = DiscoveryConfig()
         groups = discover_targets(
             ['tests.fixtures.runner.all_pass'],
@@ -185,8 +181,6 @@ class TestDiscoverTargets(unittest.TestCase):
         self.assertIsNone(names)
 
     def test_single_selector_returns_module_with_names(self):
-        from assertions._config import DiscoveryConfig
-
         config = DiscoveryConfig()
         groups = discover_targets(
             ['tests.fixtures.runner.class_simple.Simple.first'],
@@ -201,8 +195,6 @@ class TestDiscoverTargets(unittest.TestCase):
         self.assertEqual(names, ['Simple.first'])
 
     def test_two_distinct_modules(self):
-        from assertions._config import DiscoveryConfig
-
         config = DiscoveryConfig()
         groups = discover_targets(
             [
@@ -222,8 +214,6 @@ class TestDiscoverTargets(unittest.TestCase):
         )
 
     def test_duplicate_module_deduped(self):
-        from assertions._config import DiscoveryConfig
-
         config = DiscoveryConfig()
         groups = discover_targets(
             [
@@ -237,8 +227,6 @@ class TestDiscoverTargets(unittest.TestCase):
         self.assertIsNone(names)
 
     def test_module_then_selector_for_same_module_keeps_module(self):
-        from assertions._config import DiscoveryConfig
-
         config = DiscoveryConfig()
         groups = discover_targets(
             [
@@ -252,8 +240,6 @@ class TestDiscoverTargets(unittest.TestCase):
         self.assertIsNone(names)
 
     def test_two_selectors_same_module_merge_names(self):
-        from assertions._config import DiscoveryConfig
-
         config = DiscoveryConfig()
         groups = discover_targets(
             [
@@ -267,8 +253,6 @@ class TestDiscoverTargets(unittest.TestCase):
         self.assertEqual(names, ['Simple.first', 'Simple.second'])
 
     def test_directory_argv_yields_one_entry_per_py_file(self):
-        from assertions._config import DiscoveryConfig
-
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
             (root / 'a.py').write_text(
@@ -290,8 +274,6 @@ class TestDiscoverTargets(unittest.TestCase):
             self.assertIsNone(names)
 
     def test_bare_invocation_with_include_paths(self):
-        from assertions._config import DiscoveryConfig
-
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp).resolve()
             sub = root / 'sub'
@@ -329,12 +311,9 @@ class TestDiscoverTargets(unittest.TestCase):
 
     def test_bare_invocation_walks_cwd_when_no_include_paths(self):
         # discover_targets reads cwd via pathlib.Path('.').resolve()
-        # inside _bare_invocation. Use os.chdir to point cwd at a
-        # tmp tree with one test module, restoring afterwards.
-        from assertions._config import DiscoveryConfig
-
+        # inside _bare_invocation. contextlib.chdir restores cwd
+        # even if the body raises.
         config = DiscoveryConfig()
-        original_cwd = pathlib.Path.cwd()
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp).resolve()
             (root / 'cwd_test.py').write_text(
@@ -343,11 +322,8 @@ class TestDiscoverTargets(unittest.TestCase):
                 'def from_cwd():\n'
                 '    pass\n'
             )
-            os.chdir(root)
-            try:
+            with contextlib.chdir(root):
                 groups = discover_targets([], config)
-            finally:
-                os.chdir(original_cwd)
         self.assertEqual(len(groups), 1)
         module, names = groups[0]
         self.assertIsNone(names)
