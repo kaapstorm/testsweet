@@ -1,9 +1,10 @@
 import importlib
+import os
 import pathlib
 import tempfile
 import unittest
 
-from assertions._targets import parse_target
+from assertions._targets import discover_targets, parse_target
 
 
 _FIXTURES = pathlib.Path(__file__).resolve().parent / 'fixtures' / 'runner'
@@ -148,6 +149,209 @@ class TestParseTargetDirectory(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             result = parse_target(str(pathlib.Path(tmp)))
             self.assertEqual(result, [])
+
+
+class TestDiscoverTargets(unittest.TestCase):
+    # discover_targets imports test modules from temp directories,
+    # which leaves entries in sys.modules. Snapshot/restore so
+    # short-lived tmp-dir module names don't leak between tests.
+
+    def setUp(self):
+        import sys
+
+        self._saved_modules = dict(sys.modules)
+
+    def tearDown(self):
+        import sys
+
+        for name in list(sys.modules):
+            if name not in self._saved_modules:
+                del sys.modules[name]
+
+    def test_single_dotted_module(self):
+        from assertions._config import DiscoveryConfig
+
+        config = DiscoveryConfig()
+        groups = discover_targets(
+            ['tests.fixtures.runner.all_pass'],
+            config,
+        )
+        self.assertEqual(len(groups), 1)
+        module, names = groups[0]
+        expected = importlib.import_module(
+            'tests.fixtures.runner.all_pass',
+        )
+        self.assertIs(module, expected)
+        self.assertIsNone(names)
+
+    def test_single_selector_returns_module_with_names(self):
+        from assertions._config import DiscoveryConfig
+
+        config = DiscoveryConfig()
+        groups = discover_targets(
+            ['tests.fixtures.runner.class_simple.Simple.first'],
+            config,
+        )
+        self.assertEqual(len(groups), 1)
+        module, names = groups[0]
+        expected = importlib.import_module(
+            'tests.fixtures.runner.class_simple',
+        )
+        self.assertIs(module, expected)
+        self.assertEqual(names, ['Simple.first'])
+
+    def test_two_distinct_modules(self):
+        from assertions._config import DiscoveryConfig
+
+        config = DiscoveryConfig()
+        groups = discover_targets(
+            [
+                'tests.fixtures.runner.all_pass',
+                'tests.fixtures.runner.has_failure',
+            ],
+            config,
+        )
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(
+            groups[0][0].__name__,
+            'tests.fixtures.runner.all_pass',
+        )
+        self.assertEqual(
+            groups[1][0].__name__,
+            'tests.fixtures.runner.has_failure',
+        )
+
+    def test_duplicate_module_deduped(self):
+        from assertions._config import DiscoveryConfig
+
+        config = DiscoveryConfig()
+        groups = discover_targets(
+            [
+                'tests.fixtures.runner.all_pass',
+                'tests.fixtures.runner.all_pass',
+            ],
+            config,
+        )
+        self.assertEqual(len(groups), 1)
+        _, names = groups[0]
+        self.assertIsNone(names)
+
+    def test_module_then_selector_for_same_module_keeps_module(self):
+        from assertions._config import DiscoveryConfig
+
+        config = DiscoveryConfig()
+        groups = discover_targets(
+            [
+                'tests.fixtures.runner.all_pass',
+                'tests.fixtures.runner.all_pass.passes_one',
+            ],
+            config,
+        )
+        self.assertEqual(len(groups), 1)
+        _, names = groups[0]
+        self.assertIsNone(names)
+
+    def test_two_selectors_same_module_merge_names(self):
+        from assertions._config import DiscoveryConfig
+
+        config = DiscoveryConfig()
+        groups = discover_targets(
+            [
+                'tests.fixtures.runner.class_simple.Simple.first',
+                'tests.fixtures.runner.class_simple.Simple.second',
+            ],
+            config,
+        )
+        self.assertEqual(len(groups), 1)
+        _, names = groups[0]
+        self.assertEqual(names, ['Simple.first', 'Simple.second'])
+
+    def test_directory_argv_yields_one_entry_per_py_file(self):
+        from assertions._config import DiscoveryConfig
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / 'a.py').write_text(
+                'from assertions import test\n'
+                '@test\n'
+                'def t():\n'
+                '    pass\n'
+            )
+            (root / 'b.py').write_text(
+                'from assertions import test\n'
+                '@test\n'
+                'def t():\n'
+                '    pass\n'
+            )
+            config = DiscoveryConfig()
+            groups = discover_targets([str(root)], config)
+        self.assertEqual(len(groups), 2)
+        for _, names in groups:
+            self.assertIsNone(names)
+
+    def test_bare_invocation_with_include_paths(self):
+        from assertions._config import DiscoveryConfig
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve()
+            sub = root / 'sub'
+            sub.mkdir()
+            (sub / 'in_sub.py').write_text(
+                'from assertions import test\n'
+                '@test\n'
+                'def in_sub():\n'
+                '    pass\n'
+            )
+            other = root / 'other'
+            other.mkdir()
+            (other / 'in_other.py').write_text(
+                'from assertions import test\n'
+                '@test\n'
+                'def in_other():\n'
+                '    pass\n'
+            )
+            config = DiscoveryConfig(
+                include_paths=('sub/**',),
+                project_root=root,
+            )
+            groups = discover_targets([], config)
+        names_seen = sorted(
+            getattr(module, '__name__', '') for module, _ in groups
+        )
+        self.assertTrue(
+            any('in_sub' in n for n in names_seen),
+            msg=f'expected sub/ module; got {names_seen}',
+        )
+        self.assertFalse(
+            any('in_other' in n for n in names_seen),
+            msg=f'unexpected other/ module; got {names_seen}',
+        )
+
+    def test_bare_invocation_walks_cwd_when_no_include_paths(self):
+        # discover_targets reads cwd via pathlib.Path('.').resolve()
+        # inside _bare_invocation. Use os.chdir to point cwd at a
+        # tmp tree with one test module, restoring afterwards.
+        from assertions._config import DiscoveryConfig
+
+        config = DiscoveryConfig()
+        original_cwd = pathlib.Path.cwd()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp).resolve()
+            (root / 'cwd_test.py').write_text(
+                'from assertions import test\n'
+                '@test\n'
+                'def from_cwd():\n'
+                '    pass\n'
+            )
+            os.chdir(root)
+            try:
+                groups = discover_targets([], config)
+            finally:
+                os.chdir(original_cwd)
+        self.assertEqual(len(groups), 1)
+        module, names = groups[0]
+        self.assertIsNone(names)
+        self.assertTrue(hasattr(module, 'from_cwd'))
 
 
 if __name__ == '__main__':
