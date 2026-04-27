@@ -14,8 +14,8 @@ def main(argv: list[str]) -> int:
         return 2
     groups: list[tuple[ModuleType, list[str] | None]] = []
     for arg in argv:
-        module, names = parse_target(arg)
-        _add_to_groups(groups, module, names)
+        for module, names in parse_target(arg):
+            _add_to_groups(groups, module, names)
     failed = False
     for module, merged_names in groups:
         results = run(module, names=merged_names)

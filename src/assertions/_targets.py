@@ -6,10 +6,10 @@ from types import ModuleType
 
 def parse_target(
     target: str,
-) -> tuple[ModuleType, list[str] | None]:
+) -> list[tuple[ModuleType, list[str] | None]]:
     if '/' in target or target.endswith('.py'):
-        return _load_path(target), None
-    return _resolve_dotted(target)
+        return [(_load_path(target), None)]
+    return [_resolve_dotted(target)]
 
 
 def _load_path(target: str) -> ModuleType:

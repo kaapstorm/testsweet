@@ -10,7 +10,9 @@ _FIXTURES = pathlib.Path(__file__).resolve().parent / 'fixtures' / 'runner'
 
 class TestParseTarget(unittest.TestCase):
     def test_dotted_module_no_selector(self):
-        module, names = parse_target('tests.fixtures.runner.all_pass')
+        result = parse_target('tests.fixtures.runner.all_pass')
+        self.assertEqual(len(result), 1)
+        module, names = result[0]
         expected = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
@@ -18,30 +20,38 @@ class TestParseTarget(unittest.TestCase):
         self.assertIsNone(names)
 
     def test_relative_file_path(self):
-        module, names = parse_target(
+        result = parse_target(
             'tests/fixtures/runner/all_pass.py',
         )
+        self.assertEqual(len(result), 1)
+        module, names = result[0]
         self.assertIsNone(names)
         self.assertTrue(hasattr(module, 'passes_one'))
         self.assertTrue(hasattr(module, 'passes_two'))
 
     def test_relative_file_path_with_dot(self):
-        module, names = parse_target(
+        result = parse_target(
             './tests/fixtures/runner/all_pass.py',
         )
+        self.assertEqual(len(result), 1)
+        module, names = result[0]
         self.assertIsNone(names)
         self.assertTrue(hasattr(module, 'passes_one'))
 
     def test_absolute_file_path(self):
         path = (_FIXTURES / 'all_pass.py').resolve()
-        module, names = parse_target(str(path))
+        result = parse_target(str(path))
+        self.assertEqual(len(result), 1)
+        module, names = result[0]
         self.assertIsNone(names)
         self.assertTrue(hasattr(module, 'passes_one'))
 
     def test_dotted_selector_one_segment(self):
-        module, names = parse_target(
+        result = parse_target(
             'tests.fixtures.runner.all_pass.passes_one',
         )
+        self.assertEqual(len(result), 1)
+        module, names = result[0]
         expected = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
@@ -49,9 +59,11 @@ class TestParseTarget(unittest.TestCase):
         self.assertEqual(names, ['passes_one'])
 
     def test_dotted_selector_class_only(self):
-        module, names = parse_target(
+        result = parse_target(
             'tests.fixtures.runner.class_simple.Simple',
         )
+        self.assertEqual(len(result), 1)
+        module, names = result[0]
         expected = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
@@ -59,9 +71,11 @@ class TestParseTarget(unittest.TestCase):
         self.assertEqual(names, ['Simple'])
 
     def test_dotted_selector_class_method(self):
-        module, names = parse_target(
+        result = parse_target(
             'tests.fixtures.runner.class_simple.Simple.first',
         )
+        self.assertEqual(len(result), 1)
+        module, names = result[0]
         expected = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
@@ -79,10 +93,6 @@ class TestParseTarget(unittest.TestCase):
             parse_target('totally.not.a.module')
 
     def test_internal_import_error_propagates(self):
-        # The fixture imports a non-existent module at top level.
-        # parse_target must propagate that ModuleNotFoundError rather
-        # than treat the failure as "this segment doesn't exist, peel
-        # it off and try a shorter prefix".
         with self.assertRaises(ModuleNotFoundError) as ctx:
             parse_target('tests.fixtures.runner.has_broken_import')
         self.assertEqual(
