@@ -34,7 +34,13 @@ class catch_warnings:
     def __exit__(self, exc_type, exc, tb) -> None:
         try:
             assert self._records is not None
-            self._warns.extend(r.message for r in self._records)
+            for r in self._records:
+                # `WarningMessage.message` is typed `Warning | str` in
+                # the stdlib stubs (since `warnings.warn` accepts a
+                # bare string), but the warnings machinery normalizes
+                # to a Warning before recording. Narrow for mypy.
+                assert isinstance(r.message, Warning)
+                self._warns.append(r.message)
         finally:
             assert self._catcher is not None
             self._catcher.__exit__(None, None, None)
