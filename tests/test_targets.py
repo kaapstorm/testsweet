@@ -1,8 +1,14 @@
 import importlib
+import os
 import pathlib
+import tempfile
 import unittest
 
-from assertions._targets import parse_target
+from assertions._targets import (
+    _dotted_name_for_path,
+    _walk_directory,
+    parse_target,
+)
 
 
 _FIXTURES = pathlib.Path(__file__).resolve().parent / 'fixtures' / 'runner'
@@ -99,6 +105,144 @@ class TestParseTarget(unittest.TestCase):
             ctx.exception.name,
             'this_dependency_does_not_exist',
         )
+
+
+class TestWalkDirectory(unittest.TestCase):
+    def test_returns_py_files_alphabetical(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / 'b.py').write_text('')
+            (root / 'a.py').write_text('')
+            (root / 'c.py').write_text('')
+            paths = _walk_directory(root)
+            self.assertEqual(
+                [p.name for p in paths],
+                ['a.py', 'b.py', 'c.py'],
+            )
+
+    def test_recurses_subdirectories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / 'top.py').write_text('')
+            sub = root / 'sub'
+            sub.mkdir()
+            (sub / 'inner.py').write_text('')
+            paths = _walk_directory(root)
+            names = [p.relative_to(root).as_posix() for p in paths]
+            self.assertEqual(names, ['sub/inner.py', 'top.py'])
+
+    def test_excludes_hidden_directories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / 'visible.py').write_text('')
+            hidden = root / '.hidden'
+            hidden.mkdir()
+            (hidden / 'inside.py').write_text('')
+            paths = _walk_directory(root)
+            self.assertEqual(
+                [p.name for p in paths],
+                ['visible.py'],
+            )
+
+    def test_excludes_pycache(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / 'visible.py').write_text('')
+            cache = root / '__pycache__'
+            cache.mkdir()
+            (cache / 'inside.py').write_text('')
+            paths = _walk_directory(root)
+            self.assertEqual(
+                [p.name for p in paths],
+                ['visible.py'],
+            )
+
+    def test_excludes_node_modules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / 'visible.py').write_text('')
+            nm = root / 'node_modules'
+            nm.mkdir()
+            (nm / 'inside.py').write_text('')
+            paths = _walk_directory(root)
+            self.assertEqual(
+                [p.name for p in paths],
+                ['visible.py'],
+            )
+
+    def test_empty_when_no_py_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = _walk_directory(pathlib.Path(tmp))
+            self.assertEqual(paths, [])
+
+
+class TestDottedNameForPath(unittest.TestCase):
+    def test_returns_dotted_name_for_packaged_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            pkg = root / 'pkg'
+            pkg.mkdir()
+            (pkg / '__init__.py').write_text('')
+            sub = pkg / 'sub'
+            sub.mkdir()
+            (sub / '__init__.py').write_text('')
+            target = sub / 'mod.py'
+            target.write_text('')
+            dotted, rootdir = _dotted_name_for_path(target)
+            self.assertEqual(dotted, 'pkg.sub.mod')
+            self.assertEqual(rootdir, root)
+
+    def test_returns_none_for_loose_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            target = root / 'loose.py'
+            target.write_text('')
+            dotted, rootdir = _dotted_name_for_path(target)
+            self.assertIsNone(dotted)
+            self.assertIsNone(rootdir)
+
+    def test_top_level_package_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            pkg = root / 'pkg'
+            pkg.mkdir()
+            (pkg / '__init__.py').write_text('')
+            target = pkg / 'mod.py'
+            target.write_text('')
+            dotted, rootdir = _dotted_name_for_path(target)
+            self.assertEqual(dotted, 'pkg.mod')
+            self.assertEqual(rootdir, root)
+
+
+class TestParseTargetDirectory(unittest.TestCase):
+    def test_directory_yields_one_entry_per_py_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / 'a.py').write_text(
+                'from assertions import test\n'
+                '@test\n'
+                'def t():\n'
+                '    pass\n'
+            )
+            (root / 'b.py').write_text(
+                'from assertions import test\n'
+                '@test\n'
+                'def t():\n'
+                '    pass\n'
+            )
+            result = parse_target(str(root))
+            self.assertEqual(len(result), 2)
+            for module, names in result:
+                self.assertIsNone(names)
+
+    def test_nonexistent_directory_raises(self):
+        with self.assertRaises((FileNotFoundError, ImportError)):
+            parse_target('/this/path/really/should/not/exist/abc/')
+
+    def test_empty_directory_returns_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = parse_target(str(pathlib.Path(tmp)))
+            self.assertEqual(result, [])
 
 
 if __name__ == '__main__':
