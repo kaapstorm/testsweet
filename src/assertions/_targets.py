@@ -32,6 +32,10 @@ def discover_targets(
     # Group by module identity, preserving first-seen order via dict
     # insertion order. Whole-module entries (names is None) win over
     # selectors for the same module.
+    #
+    # Keying by id(module) is safe because `raw` holds a strong
+    # reference to every module for the duration of the loop — id()
+    # is only guaranteed unique among live objects.
     by_id: dict[int, TargetGroup] = {}
     for module, names in raw:
         key = id(module)

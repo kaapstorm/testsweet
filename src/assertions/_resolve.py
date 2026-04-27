@@ -13,6 +13,13 @@ def resolve_units(
     module: ModuleType,
     names: list[str] | None = None,
 ) -> Iterator[tuple[str, Callable[[], Any]]]:
+    # `_build_plan` runs synchronously here (above
+    # `chain.from_iterable`), so `LookupError` for unmatched names
+    # fires at call time, before any iteration. The returned chain
+    # advances units sequentially: each `_expand_unit` generator is
+    # exhausted (running its `with cm:` `__exit__`) before the next
+    # one's `__enter__` runs. Per-class fixture lifecycles are
+    # therefore non-overlapping, even though the chain looks flat.
     units = discover(module)
     if names is None:
         return itertools.chain.from_iterable(
