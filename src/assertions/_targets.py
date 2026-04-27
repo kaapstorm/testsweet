@@ -28,10 +28,23 @@ def discover_targets(
     else:
         for arg in argv:
             raw.extend(parse_target(arg, config, excluded))
-    groups: list[TargetGroup] = []
+
+    # Group by module identity, preserving first-seen order via dict
+    # insertion order. Whole-module entries (names is None) win over
+    # selectors for the same module.
+    by_id: dict[int, TargetGroup] = {}
     for module, names in raw:
-        _add_to_groups(groups, module, names)
-    return groups
+        key = id(module)
+        existing = by_id.get(key)
+        if existing is None:
+            by_id[key] = (module, names)
+            continue
+        _, existing_names = existing
+        if existing_names is None or names is None:
+            by_id[key] = (module, None)
+        else:
+            by_id[key] = (module, existing_names + names)
+    return list(by_id.values())
 
 
 def parse_target(
@@ -77,18 +90,3 @@ def _bare_invocation(
             ):
                 out.append((_load_path_for_walk(path), None))
     return out
-
-
-def _add_to_groups(
-    groups: list[TargetGroup],
-    module: ModuleType,
-    names: list[str] | None,
-) -> None:
-    for i, (existing_module, existing_names) in enumerate(groups):
-        if existing_module is module:
-            if existing_names is None or names is None:
-                groups[i] = (module, None)
-            else:
-                groups[i] = (module, existing_names + names)
-            return
-    groups.append((module, names))
