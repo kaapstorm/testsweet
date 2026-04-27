@@ -1,10 +1,13 @@
-from assertions import Test
+from contextlib import AbstractContextManager
+
+from assertions import test
 
 
 CALLS: list[str] = []
 
 
-class Recorded(Test):
+@test
+class Recorded(AbstractContextManager):
     def __enter__(self):
         CALLS.append('enter')
 

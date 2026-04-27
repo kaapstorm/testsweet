@@ -1,4 +1,4 @@
-from assertions import Test, test
+from assertions import test
 
 
 @test
@@ -6,6 +6,7 @@ def free_function():
     assert True
 
 
-class ClassUnit(Test):
+@test
+class ClassUnit:
     def method(self):
         assert True

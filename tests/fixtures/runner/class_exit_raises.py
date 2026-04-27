@@ -1,7 +1,10 @@
-from assertions import Test
+from contextlib import AbstractContextManager
+
+from assertions import test
 
 
-class ExitRaises(Test):
+@test
+class ExitRaises(AbstractContextManager):
     def __exit__(self, exc_type, exc, tb):
         raise RuntimeError('boom in exit')
 

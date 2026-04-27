@@ -1,7 +1,8 @@
-from assertions import Test
+from assertions import test
 
 
-class HasFailure(Test):
+@test
+class HasFailure:
     def passes(self):
         assert True
 

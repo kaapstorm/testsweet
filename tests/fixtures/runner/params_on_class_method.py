@@ -1,7 +1,8 @@
-from assertions import Test, test_params
+from assertions import test, test_params
 
 
-class Cls(Test):
+@test
+class Cls:
     @test_params([(1, 2), (3, 4)])
     def method(self, a, b):
         assert a < b

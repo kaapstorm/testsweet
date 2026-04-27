@@ -1,7 +1,8 @@
-from assertions import Test
+from assertions import test
 
 
-class Simple(Test):
+@test
+class Simple:
     def first(self):
         assert 1 + 1 == 2
 

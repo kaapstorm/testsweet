@@ -1,7 +1,8 @@
-from assertions import Test
+from assertions import test
 
 
-class WithUnderscores(Test):
+@test
+class WithUnderscores:
     def _helper(self):
         raise AssertionError('helper should not run')
 
