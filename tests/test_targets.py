@@ -4,8 +4,8 @@ import pathlib
 import tempfile
 import unittest
 
+from assertions._loaders import _dotted_name_for_path
 from assertions._targets import (
-    _dotted_name_for_path,
     _walk_directory,
     parse_target,
 )
@@ -264,7 +264,7 @@ class TestParseTargetDirectory(unittest.TestCase):
 
 class TestExecModuleFromPath(unittest.TestCase):
     def test_loads_a_simple_module(self):
-        from assertions._targets import _exec_module_from_path
+        from assertions._loaders import _exec_module_from_path
 
         with tempfile.TemporaryDirectory() as tmp:
             path = pathlib.Path(tmp) / 'demo.py'
@@ -274,7 +274,7 @@ class TestExecModuleFromPath(unittest.TestCase):
         self.assertEqual(module.__name__, 'demo')
 
     def test_unloadable_path_raises_import_error(self):
-        from assertions._targets import _exec_module_from_path
+        from assertions._loaders import _exec_module_from_path
 
         with tempfile.TemporaryDirectory() as tmp:
             path = pathlib.Path(tmp) / 'missing.py'
