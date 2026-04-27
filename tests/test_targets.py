@@ -78,6 +78,18 @@ class TestParseTarget(unittest.TestCase):
         with self.assertRaises(ModuleNotFoundError):
             parse_target('totally.not.a.module')
 
+    def test_internal_import_error_propagates(self):
+        # The fixture imports a non-existent module at top level.
+        # parse_target must propagate that ModuleNotFoundError rather
+        # than treat the failure as "this segment doesn't exist, peel
+        # it off and try a shorter prefix".
+        with self.assertRaises(ModuleNotFoundError) as ctx:
+            parse_target('tests.fixtures.runner.has_broken_import')
+        self.assertEqual(
+            ctx.exception.name,
+            'this_dependency_does_not_exist',
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

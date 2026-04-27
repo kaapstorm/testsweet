@@ -36,6 +36,16 @@ def _resolve_dotted(
         try:
             module = importlib.import_module(head)
         except ModuleNotFoundError as exc:
+            # Distinguish "head itself doesn't exist" from "head
+            # exists but raised ModuleNotFoundError on an internal
+            # import". exc.name is the missing dotted name; if it
+            # isn't head or a prefix of head, the failure came from
+            # inside a module we did manage to start importing —
+            # propagate rather than masking it as a bad selector.
+            if exc.name is None or not (
+                exc.name == head or head.startswith(exc.name + '.')
+            ):
+                raise
             if first_error is None:
                 first_error = exc
             tail_parts.insert(0, head_parts.pop())
