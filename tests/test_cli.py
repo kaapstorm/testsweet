@@ -212,6 +212,199 @@ class TestCli(unittest.TestCase):
                 if name == 'walkpkg' or name.startswith('walkpkg.'):
                     del sys.modules[name]
 
+    def _make_test_module(self, root, name, body):
+        import textwrap
+
+        (root / name).write_text(textwrap.dedent(body).lstrip())
+
+    def _passing_test(self, func_name='passes'):
+        return f"""
+            from assertions import test
+
+            @test
+            def {func_name}():
+                assert True
+        """
+
+    def test_config_include_paths_narrows_walk(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            sub = root / 'sub'
+            sub.mkdir()
+            other = root / 'other'
+            other.mkdir()
+            self._make_test_module(
+                sub,
+                'test_in_sub.py',
+                self._passing_test('in_sub'),
+            )
+            self._make_test_module(
+                other,
+                'test_in_other.py',
+                self._passing_test('in_other'),
+            )
+            (root / 'pyproject.toml').write_text(
+                '[tool.assertions.discovery]\n' 'include_paths = ["sub/**"]\n'
+            )
+            result = subprocess.run(
+                [sys.executable, '-m', 'assertions'],
+                capture_output=True,
+                text=True,
+                cwd=tmp,
+            )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('in_sub ... ok', result.stdout)
+        self.assertNotIn('in_other', result.stdout)
+
+    def test_config_exclude_paths_drops_matches(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            self._make_test_module(
+                root,
+                'test_keep.py',
+                self._passing_test('keep'),
+            )
+            vendored = root / 'vendored'
+            vendored.mkdir()
+            self._make_test_module(
+                vendored,
+                'test_drop.py',
+                self._passing_test('drop'),
+            )
+            (root / 'pyproject.toml').write_text(
+                '[tool.assertions.discovery]\n'
+                'exclude_paths = ["vendored/**"]\n'
+            )
+            result = subprocess.run(
+                [sys.executable, '-m', 'assertions'],
+                capture_output=True,
+                text=True,
+                cwd=tmp,
+            )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('keep ... ok', result.stdout)
+        self.assertNotIn('drop', result.stdout)
+
+    def test_config_test_files_filters_filenames(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            self._make_test_module(
+                root,
+                'test_match.py',
+                self._passing_test('matched'),
+            )
+            self._make_test_module(
+                root,
+                'helper.py',
+                self._passing_test('skipped'),
+            )
+            (root / 'pyproject.toml').write_text(
+                '[tool.assertions.discovery]\n' 'test_files = ["test_*.py"]\n'
+            )
+            result = subprocess.run(
+                [sys.executable, '-m', 'assertions'],
+                capture_output=True,
+                text=True,
+                cwd=tmp,
+            )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('matched ... ok', result.stdout)
+        self.assertNotIn('skipped', result.stdout)
+
+    def test_argv_directory_ignores_include_paths(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            sub = root / 'sub'
+            sub.mkdir()
+            other = root / 'other'
+            other.mkdir()
+            self._make_test_module(
+                sub,
+                'test_in_sub.py',
+                self._passing_test('in_sub'),
+            )
+            self._make_test_module(
+                other,
+                'test_in_other.py',
+                self._passing_test('in_other'),
+            )
+            (root / 'pyproject.toml').write_text(
+                '[tool.assertions.discovery]\n' 'include_paths = ["sub/**"]\n'
+            )
+            result = subprocess.run(
+                [sys.executable, '-m', 'assertions', 'other'],
+                capture_output=True,
+                text=True,
+                cwd=tmp,
+            )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('in_other ... ok', result.stdout)
+        self.assertNotIn('in_sub', result.stdout)
+
+    def test_argv_directory_still_honors_exclude_paths(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            src = root / 'src'
+            src.mkdir()
+            self._make_test_module(
+                src,
+                'test_keep.py',
+                self._passing_test('keep'),
+            )
+            vendored = src / 'vendored'
+            vendored.mkdir()
+            self._make_test_module(
+                vendored,
+                'test_drop.py',
+                self._passing_test('drop'),
+            )
+            (root / 'pyproject.toml').write_text(
+                '[tool.assertions.discovery]\n'
+                'exclude_paths = ["src/vendored/**"]\n'
+            )
+            result = subprocess.run(
+                [sys.executable, '-m', 'assertions', 'src'],
+                capture_output=True,
+                text=True,
+                cwd=tmp,
+            )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn('keep ... ok', result.stdout)
+        self.assertNotIn('drop', result.stdout)
+
+    def test_invalid_config_raises_configuration_error(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            self._make_test_module(
+                root,
+                'test_a.py',
+                self._passing_test('a'),
+            )
+            (root / 'pyproject.toml').write_text(
+                '[tool.assertions.discovery]\n' 'typoed_key = ["nope"]\n'
+            )
+            result = subprocess.run(
+                [sys.executable, '-m', 'assertions'],
+                capture_output=True,
+                text=True,
+                cwd=tmp,
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('ConfigurationError', result.stderr)
+        self.assertIn('typoed_key', result.stderr)
+
 
 if __name__ == '__main__':
     unittest.main()
