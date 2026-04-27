@@ -347,5 +347,33 @@ class TestRunNames(unittest.TestCase):
             run(mod, names=['Simple.nonexistent'])
 
 
+class TestDecoratedClass(unittest.TestCase):
+    def test_runs_decorated_class_without_context_manager(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_decorated_simple',
+        )
+        results = run(mod)
+        names = sorted(name for name, _ in results)
+        self.assertEqual(names, ['Simple.fails', 'Simple.passes'])
+        outcomes = {name: exc for name, exc in results}
+        self.assertIsNone(outcomes['Simple.passes'])
+        self.assertIsInstance(outcomes['Simple.fails'], AssertionError)
+
+    def test_runs_decorated_class_with_context_manager(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_decorated_with_cm',
+        )
+        results = run(mod)
+        self.assertEqual(
+            [name for name, _ in results],
+            ['WithCM.uses_fixture'],
+        )
+        self.assertIsNone(results[0][1])
+        self.assertEqual(
+            mod.CALLS,
+            ['enter', 'test', 'exit'],
+        )
+
+
 if __name__ == '__main__':
     unittest.main()
