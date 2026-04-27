@@ -1,10 +1,9 @@
+from contextlib import nullcontext
 from types import ModuleType
 from typing import Callable
 
 from assertions._discover import discover
 from assertions._params import PARAMS_MARKER
-from contextlib import nullcontext
-
 from assertions._test_class import _public_methods
 
 
