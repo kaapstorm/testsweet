@@ -262,5 +262,25 @@ class TestParseTargetDirectory(unittest.TestCase):
             self.assertEqual(result, [])
 
 
+class TestExecModuleFromPath(unittest.TestCase):
+    def test_loads_a_simple_module(self):
+        from assertions._targets import _exec_module_from_path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / 'demo.py'
+            path.write_text('value = 42\n')
+            module = _exec_module_from_path(path)
+        self.assertEqual(getattr(module, 'value'), 42)
+        self.assertEqual(module.__name__, 'demo')
+
+    def test_unloadable_path_raises_import_error(self):
+        from assertions._targets import _exec_module_from_path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / 'missing.py'
+            with self.assertRaises((ImportError, FileNotFoundError)):
+                _exec_module_from_path(path)
+
+
 if __name__ == '__main__':
     unittest.main()

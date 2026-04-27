@@ -26,14 +26,17 @@ def parse_target(
     return [_resolve_dotted(target)]
 
 
-def _load_path(target: str) -> ModuleType:
-    path = pathlib.Path(target).resolve()
+def _exec_module_from_path(path: pathlib.Path) -> ModuleType:
     spec = importlib.util.spec_from_file_location(path.stem, path)
     if spec is None or spec.loader is None:
-        raise ImportError(f'cannot load {target!r} from path')
+        raise ImportError(f'cannot load {path} as a module')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _load_path(target: str) -> ModuleType:
+    return _exec_module_from_path(pathlib.Path(target).resolve())
 
 
 def _load_path_for_walk(path: pathlib.Path) -> ModuleType:
@@ -43,12 +46,7 @@ def _load_path_for_walk(path: pathlib.Path) -> ModuleType:
         if rootdir_str not in sys.path:
             sys.path.insert(0, rootdir_str)
         return importlib.import_module(dotted)
-    spec = importlib.util.spec_from_file_location(path.stem, path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f'cannot load {path} from walk')
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    return _exec_module_from_path(path)
 
 
 def _walk_directory(root: pathlib.Path) -> list[pathlib.Path]:
