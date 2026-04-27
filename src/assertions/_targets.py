@@ -51,16 +51,16 @@ def _resolve_include_paths(
 def _build_exclude_set(
     config: DiscoveryConfig,
 ) -> set[pathlib.Path]:
+    # Glob each exclude pattern and add every match (file or
+    # directory) directly. The walker checks each entry against this
+    # set before recursing, so an excluded directory prunes its whole
+    # subtree without us having to walk into it here.
     if not config.exclude_paths or config.project_root is None:
         return set()
     excluded: set[pathlib.Path] = set()
     for pattern in config.exclude_paths:
         for match in config.project_root.glob(pattern):
-            if match.is_file():
-                excluded.add(match.resolve())
-            elif match.is_dir():
-                for sub in match.rglob('*.py'):
-                    excluded.add(sub.resolve())
+            excluded.add(match.resolve())
     return excluded
 
 
@@ -92,16 +92,26 @@ def _walk_directory(
     config: DiscoveryConfig | None = None,
     excluded: set[pathlib.Path] | None = None,
 ) -> list[pathlib.Path]:
+    # Symlinks (both directory and file) are not followed: we only
+    # consider entries that are real files / real directories. This
+    # avoids cycles and prevents picking up source files outside the
+    # walked tree. A test file deliberately reached via a symlink
+    # will not be discovered — the user must pass it as an explicit
+    # target, or set up `__init__.py` to make it a real package
+    # module.
     out: list[pathlib.Path] = []
     with os.scandir(root) as it:
         entries = sorted(it, key=lambda e: e.name)
     for entry in entries:
+        entry_path = pathlib.Path(entry.path)
+        if excluded is not None and entry_path.resolve() in excluded:
+            continue
         if entry.is_dir(follow_symlinks=False):
             if _is_excluded_dir(entry.name):
                 continue
             out.extend(
                 _walk_directory(
-                    pathlib.Path(entry.path),
+                    entry_path,
                     config=config,
                     excluded=excluded,
                 )
@@ -109,10 +119,9 @@ def _walk_directory(
         elif entry.is_file(follow_symlinks=False) and entry.name.endswith(
             '.py'
         ):
-            path = pathlib.Path(entry.path)
-            if not _accepts_file(path, config, excluded):
+            if not _accepts_file(entry_path, config, excluded):
                 continue
-            out.append(path)
+            out.append(entry_path)
     return out
 
 
