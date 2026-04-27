@@ -13,15 +13,14 @@ def resolve_units(
     names: list[str] | None = None,
 ) -> list[Iterator[tuple[str, Callable[[], Any]]]]:
     units = discover(module)
+    if names is None:
+        return [_expand_unit(unit, None) for unit in units]
     plan = _build_plan(units, names)
     out: list[Iterator[tuple[str, Callable[[], Any]]]] = []
     for unit in units:
-        if names is not None and unit.__qualname__ not in plan:
+        if unit.__qualname__ not in plan:
             continue
-        method_filter = (
-            plan.get(unit.__qualname__) if names is not None else None
-        )
-        out.append(_expand_unit(unit, method_filter))
+        out.append(_expand_unit(unit, plan[unit.__qualname__]))
     return out
 
 
@@ -63,12 +62,10 @@ def _expand_callable(
 
 def _build_plan(
     units: list[Any],
-    names: list[str] | None,
+    names: list[str],
 ) -> dict[str, set[str] | None]:
     # plan[unit_qualname] = None  -> run as today (whole unit)
     #                    = set    -> run only these method names
-    if names is None:
-        return {}
     plan: dict[str, set[str] | None] = {}
     discovered_unit_names = {u.__qualname__: u for u in units}
     unmatched: list[str] = []
