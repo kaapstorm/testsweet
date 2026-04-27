@@ -1,22 +1,35 @@
+import pathlib
 import sys
 from types import ModuleType
 
+from assertions._config import DiscoveryConfig, load_config
 from assertions._runner import run
-from assertions._targets import parse_target
+from assertions._targets import (
+    _build_exclude_set,
+    _load_path_for_walk,
+    _resolve_include_paths,
+    _walk_directory,
+    parse_target,
+)
 
 
 USAGE = 'usage: python -m assertions [<target>...]'
 
 
 def main(argv: list[str]) -> int:
-    if not argv:
-        argv = ['.']
     saved_sys_path = list(sys.path)
     try:
+        config = load_config(pathlib.Path.cwd())
+        excluded = _build_exclude_set(config)
+        if not argv:
+            argv_groups = _bare_invocation(config, excluded)
+        else:
+            argv_groups = []
+            for arg in argv:
+                argv_groups.extend(parse_target(arg, config, excluded))
         groups: list[tuple[ModuleType, list[str] | None]] = []
-        for arg in argv:
-            for module, names in parse_target(arg):
-                _add_to_groups(groups, module, names)
+        for module, names in argv_groups:
+            _add_to_groups(groups, module, names)
         failed = False
         for module, merged_names in groups:
             results = run(module, names=merged_names)
@@ -29,6 +42,27 @@ def main(argv: list[str]) -> int:
         return 1 if failed else 0
     finally:
         sys.path[:] = saved_sys_path
+
+
+def _bare_invocation(
+    config: DiscoveryConfig,
+    excluded: set[pathlib.Path],
+) -> list[tuple[ModuleType, list[str] | None]]:
+    roots = _resolve_include_paths(config)
+    if not roots:
+        roots = [pathlib.Path('.').resolve()]
+    out: list[tuple[ModuleType, list[str] | None]] = []
+    for root in roots:
+        if root.is_file() and root.suffix == '.py':
+            out.append((_load_path_for_walk(root), None))
+        elif root.is_dir():
+            for path in _walk_directory(
+                root,
+                config=config,
+                excluded=excluded,
+            ):
+                out.append((_load_path_for_walk(path), None))
+    return out
 
 
 def _add_to_groups(

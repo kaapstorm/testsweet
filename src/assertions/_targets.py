@@ -14,6 +14,8 @@ _EXCLUDED_DIR_NAMES = frozenset({'__pycache__', 'node_modules'})
 
 def parse_target(
     target: str,
+    config: DiscoveryConfig | None = None,
+    excluded: set[pathlib.Path] | None = None,
 ) -> list[tuple[ModuleType, list[str] | None]]:
     if (
         '/' in target
@@ -23,10 +25,43 @@ def parse_target(
         path = pathlib.Path(target).resolve()
         if path.is_dir():
             return [
-                (_load_path_for_walk(p), None) for p in _walk_directory(path)
+                (_load_path_for_walk(p), None)
+                for p in _walk_directory(
+                    path,
+                    config=config,
+                    excluded=excluded,
+                )
             ]
         return [(_load_path(target), None)]
     return [_resolve_dotted(target)]
+
+
+def _resolve_include_paths(
+    config: DiscoveryConfig,
+) -> list[pathlib.Path]:
+    if not config.include_paths or config.project_root is None:
+        return []
+    out: list[pathlib.Path] = []
+    for pattern in config.include_paths:
+        for match in config.project_root.glob(pattern):
+            out.append(match)
+    return out
+
+
+def _build_exclude_set(
+    config: DiscoveryConfig,
+) -> set[pathlib.Path]:
+    if not config.exclude_paths or config.project_root is None:
+        return set()
+    excluded: set[pathlib.Path] = set()
+    for pattern in config.exclude_paths:
+        for match in config.project_root.glob(pattern):
+            if match.is_file():
+                excluded.add(match.resolve())
+            elif match.is_dir():
+                for sub in match.rglob('*.py'):
+                    excluded.add(sub.resolve())
+    return excluded
 
 
 def _exec_module_from_path(path: pathlib.Path) -> ModuleType:
