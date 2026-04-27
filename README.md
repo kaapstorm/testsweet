@@ -28,6 +28,28 @@ class OrThings(Test):
         assert {'foo': 1} | {'bar': 2} == {'foo': 1, 'bar': 2}
 ```
 
+Catching exceptions and warnings:
+
+```python
+import warnings
+from assertions import catch_exceptions, catch_warnings, test
+
+
+@test
+def zero_div():
+    with catch_exceptions() as excs:
+        1 / 0
+    assert type(excs[0]) is ZeroDivisionError
+
+
+@test
+def deprecated():
+    with catch_warnings() as warns:
+        warnings.warn('use new_func', DeprecationWarning)
+    assert type(warns[0]) is DeprecationWarning
+    assert 'new_func' in str(warns[0])
+```
+
 Running tests:
 
 ```shell
