@@ -4,7 +4,7 @@ from typing import Callable
 
 from assertions._discover import discover
 from assertions._params import PARAMS_MARKER
-from assertions._test_class import _public_methods
+from assertions._class_helpers import _public_methods
 
 
 def run(
