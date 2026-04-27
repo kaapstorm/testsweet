@@ -6,9 +6,6 @@ from assertions._runner import run
 from assertions._targets import discover_targets
 
 
-USAGE = 'usage: python -m assertions [<target>...]'
-
-
 def main(argv: list[str]) -> int:
     saved_sys_path = list(sys.path)
     try:
