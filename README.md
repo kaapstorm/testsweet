@@ -48,9 +48,11 @@ def or_dicts():
 A test class:
 
 ```python
-from assertions import Test
+from assertions import test
 
-class OrThings(Test):
+
+@test
+class OrThings:
     def or_dicts(self):
         assert {'foo': 1} | {'bar': 2} == {'foo': 1, 'bar': 2}
 ```

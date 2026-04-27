@@ -1,4 +1,4 @@
-from assertions import Test, test
+from assertions import test
 from assertions.django import uses_db
 
 
@@ -10,6 +10,7 @@ def there_is_a_superuser():
 
 
 @uses_db
-class ThereIsASuperuser(Test):
+@test
+class ThereIsASuperuser:
     def there_is_a_superuser(self):
         assert User.objects.filter(is_superuser=True).exists()
