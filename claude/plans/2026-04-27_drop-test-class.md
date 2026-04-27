@@ -1,40 +1,93 @@
 # Drop `Test` Base Class Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task.
+> Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the `Test` base class with class-level usage of the existing `@test` decorator, and have the runner duck-type the context-manager protocol so class fixtures are opt-in via `__enter__`/`__exit__` (typically by inheriting `contextlib.AbstractContextManager`).
+**Goal:**
 
-**Architecture:** `@test` already sets `TEST_MARKER` on whatever it decorates. Allow it to mark classes too. The runner currently dispatches by `issubclass(unit, Test)`; switch to `isinstance(unit, type)` and use `contextlib.nullcontext(instance)` when the instance does not expose `__enter__`. `Test` and its module-level helpers move out, and all fixtures, tests, and docs migrate to the decorator style.
+Replace the `Test` base class with class-level usage of the existing
+`@test` decorator, and have the runner duck-type the context-manager
+protocol so class fixtures are opt-in via `__enter__`/`__exit__`
+(typically by inheriting `contextlib.AbstractContextManager`).
 
-**Tech Stack:** Python 3.11+, stdlib only (`contextlib.nullcontext`, `contextlib.AbstractContextManager`), `unittest`, `uv`, `ruff`.
+**Architecture:**
+
+`@test` already sets `TEST_MARKER` on whatever it decorates. Allow it to
+mark classes too. The runner currently dispatches by
+`issubclass (unit, Test)`; switch to `isinstance(unit, type)` and use
+`contextlib.nullcontext(instance)` when the instance does not expose
+`__enter__`. `Test` and its module-level helpers move out, and all
+fixtures, tests, and docs migrate to the decorator style.
+
+**Tech Stack:**
+
+Python 3.11+, stdlib only
+(`contextlib.nullcontext`, `contextlib.AbstractContextManager`),
+`unittest`, `uv`, `ruff`.
 
 ---
 
 ## File Structure
 
 **Source files:**
-- `src/assertions/_test_class.py` — keep `_public_methods`, remove `Test`. Rename file to `_class_helpers.py` (single-responsibility: helpers for class-shaped test units).
-- `src/assertions/_runner.py` — drop the `Test` import; dispatch on `isinstance(unit, type)`; wrap entry in `nullcontext` when `__enter__` is absent.
-- `src/assertions/__init__.py` — drop `Test` from imports and `__all__`.
-- `src/assertions/_markers.py` — no change required (the existing `@test` already works on classes via `setattr`); add a docstring noting class usage.
+
+- `src/assertions/_test_class.py` — keep `_public_methods`, remove
+  `Test`. Rename file to `_class_helpers.py`
+  (single-responsibility: helpers for class-shaped test units).
+
+- `src/assertions/_runner.py` — drop the `Test` import; dispatch on
+  `isinstance(unit, type)`; wrap entry in `nullcontext` when
+  `__enter__` is absent.
+
+- `src/assertions/__init__.py` — drop `Test` from imports and
+  `__all__`.
+
+- `src/assertions/_markers.py` — no change required (the existing
+  `@test` already works on classes via `setattr`); add a docstring
+  noting class usage.
 
 **Test files:**
-- `tests/test_test_class.py` — rename to `tests/test_class_helpers.py`. Drop `TestMarkerPropagation` (the `__init_subclass__` mechanism is gone). Replace `class Foo(Test):` with `@test class Foo:` throughout. Keep `_public_methods` tests. Add new tests covering `@test` on classes and the runner's duck-typing behavior.
-- `tests/test_runner.py` — add tests for: (a) `@test` class without `__enter__` runs via `nullcontext`; (b) `@test` class inheriting `AbstractContextManager` runs `__enter__`/`__exit__`.
-- `tests/fixtures/runner/class_*.py` — migrate every `class X(Test):` to `@test class X:` (and inherit `AbstractContextManager` where the fixture relies on enter/exit semantics: `class_enter_raises.py`, `class_exit_raises.py`, `class_calls_recorded.py`).
+
+- `tests/test_test_class.py` — rename to `tests/test_class_helpers.py`.
+  Drop `TestMarkerPropagation` (the `__init_subclass__` mechanism is
+  gone). Replace `class Foo(Test):` with `@test class Foo:` throughout.
+  Keep `_public_methods` tests. Add new tests covering `@test` on
+  classes and the runner's duck-typing behavior.
+
+- `tests/test_runner.py` — add tests for: (a) `@test` class without
+  `__enter__` runs via `nullcontext`; (b) `@test` class inheriting
+  `AbstractContextManager` runs `__enter__`/`__exit__`.
+
+- `tests/fixtures/runner/class_*.py` — migrate every `class X(Test):` to
+  `@test class X:` (and inherit `AbstractContextManager` where the
+  fixture relies on enter/exit semantics: `class_enter_raises.py`,
+  `class_exit_raises.py`, `class_calls_recorded.py`).
 
 **Docs:**
-- `doc/examples/classes.py` — already shows the target style; remove the old `class OrThings(Test):` example, keep the `@test` form. Add a no-fixture variant.
-- `doc/roadmap/examples/django.py` — migrate to `@test class ThereIsASuperuser:` (or with `AbstractContextManager` if the example uses a fixture).
-- `README.md` — update the "test class" example block under `Examples` to use `@test`.
 
-**Plan deviations from the existing layout:** the rename `_test_class.py → _class_helpers.py` is justified because the file no longer hosts a class — only helpers. Skip the rename if the reviewer prefers to minimize churn; the rest of the plan is unaffected.
+- `doc/examples/classes.py` — already shows the target style; remove the
+  old `class OrThings(Test):` example, keep the `@test` form. Add a
+  no-fixture variant.
+
+- `doc/roadmap/examples/django.py` — migrate to `@test class
+  ThereIsASuperuser:`.
+
+- `README.md` — update the "test class" example block under `Examples`
+  to use `@test`.
+
+**Plan deviations from the existing layout:**
+
+The rename `_test_class.py → _class_helpers.py` is justified because the
+file no longer hosts a class — only helpers.
 
 ---
 
 ## Task 1: Add tests pinning down the new runner semantics (red)
 
 **Files:**
+
 - Create: `tests/fixtures/runner/class_decorated_simple.py`
 - Create: `tests/fixtures/runner/class_decorated_with_cm.py`
 - Modify: `tests/test_runner.py` (append two new test cases)
@@ -118,12 +171,18 @@ class TestDecoratedClass(unittest.TestCase):
         )
 ```
 
-If `import unittest`, `import importlib`, or `from assertions import run` is not already imported at the top of `tests/test_runner.py`, add them.
+If `import unittest`, `import importlib`, or `from assertions import run`
+is not already imported at the top of `tests/test_runner.py`, add them.
 
 - [ ] **Step 4: Run the new tests and confirm they fail**
 
 Run: `uv run python -m unittest tests.test_runner.TestDecoratedClass -v`
-Expected: both tests fail. `test_runs_decorated_class_without_context_manager` fails because the runner currently treats a non-`Test` class as a callable and tries to call it (`TypeError` or empty results). `test_runs_decorated_class_with_context_manager` fails the same way.
+
+Expected: both tests fail.
+`test_runs_decorated_class_without_context_manager` fails because the
+runner currently treats a non-`Test` class as a callable and tries to
+call it (`TypeError` or empty results).
+`test_runs_decorated_class_with_context_manager` fails the same way.
 
 - [ ] **Step 5: Commit**
 
@@ -139,6 +198,7 @@ git commit -m "test: pin down decorator-style class units (failing)"
 ## Task 2: Make the runner dispatch on `isinstance(unit, type)` and duck-type the cm protocol (green)
 
 **Files:**
+
 - Modify: `src/assertions/_runner.py`
 
 - [ ] **Step 1: Update imports**
@@ -157,11 +217,13 @@ from contextlib import nullcontext
 from assertions._test_class import _public_methods
 ```
 
-(After Task 6 this import path becomes `assertions._class_helpers`; do not rename it yet — that change ships in Task 6.)
+(After Task 6 this import path becomes `assertions._class_helpers`; do
+not rename it yet — that change ships in Task 6.)
 
 - [ ] **Step 2: Replace the `issubclass(unit, Test)` check in `_build_plan`**
 
-In `src/assertions/_runner.py`, replace the block in `_build_plan` that currently reads:
+In `src/assertions/_runner.py`, replace the block in `_build_plan` that
+currently reads:
 
 ```python
             if (
@@ -211,12 +273,18 @@ def _run_unit(
 - [ ] **Step 4: Run the new runner tests and confirm they pass**
 
 Run: `uv run python -m unittest tests.test_runner.TestDecoratedClass -v`
+
 Expected: both tests pass.
 
 - [ ] **Step 5: Run the full test suite to confirm no regressions yet**
 
 Run: `uv run python -m unittest discover -v`
-Expected: pass. Existing `Test`-subclass fixtures still satisfy `isinstance(unit, type)` (they are still types and still carry `TEST_MARKER` via `__init_subclass__`), and they still expose `__enter__` from the `Test` base, so the new code path runs them unchanged.
+
+Expected: pass. Existing `Test`-subclass fixtures still satisfy
+`isinstance(unit, type)` (they are still types and still carry
+`TEST_MARKER` via `__init_subclass__`), and they still expose
+`__enter__` from the `Test` base, so the new code path runs them
+unchanged.
 
 - [ ] **Step 6: Commit**
 
@@ -230,6 +298,7 @@ git commit -m "feat(runner): dispatch class units by type, duck-type cm protocol
 ## Task 3: Migrate runner fixtures from `Test` subclass to `@test`
 
 **Files:**
+
 - Modify: `tests/fixtures/runner/class_simple.py`
 - Modify: `tests/fixtures/runner/class_method_fails.py`
 - Modify: `tests/fixtures/runner/class_with_underscore_methods.py`
@@ -242,8 +311,14 @@ git commit -m "feat(runner): dispatch class units by type, duck-type cm protocol
 - Modify: `tests/fixtures/runner/params_lazy_on_class_method.py`
 
 For each fixture, the migration rule is:
-- If the original class only inherits `Test` and provides no `__enter__/__exit__`, replace `class X(Test):` with `@test\nclass X:` and drop the `Test` import in favor of `from assertions import test`.
-- If the original class relies on enter/exit semantics, additionally inherit `contextlib.AbstractContextManager`.
+
+- If the original class only inherits `Test` and provides no
+  `__enter__/__exit__`, replace `class X(Test):` with `@test\nclass X:`
+  and drop the `Test` import in favor of `from assertions import
+  test`.
+
+- If the original class relies on enter/exit semantics, additionally
+  inherit `contextlib.AbstractContextManager`.
 
 - [ ] **Step 1: Migrate the no-fixture cases**
 
@@ -320,7 +395,8 @@ class Leaf(_Base):
         assert True
 ```
 
-(Preserve the existing class bodies — only the marker mechanism changes. Read each existing file before editing to keep method bodies intact.)
+(Preserve the existing class bodies — only the marker mechanism changes.
+Read each existing file before editing to keep method bodies intact.)
 
 `tests/fixtures/runner/class_mixed_with_function.py`:
 
@@ -339,7 +415,11 @@ def function_test():
     assert True
 ```
 
-`tests/fixtures/runner/params_on_class_method.py` and `tests/fixtures/runner/params_lazy_on_class_method.py`: replace `from assertions import Test, test_params[...]` with `from assertions import test, test_params[...]` and decorate the class with `@test`. Keep the `@test_params(...)` method-level decorators.
+`tests/fixtures/runner/params_on_class_method.py` and
+`tests/fixtures/runner/params_lazy_on_class_method.py`: replace `from
+assertions import Test, test_params[...]` with `from assertions import
+test, test_params[...]` and decorate the class with `@test`. Keep the
+`@test_params(...)` method-level decorators.
 
 - [ ] **Step 2: Migrate the fixture-using cases**
 
@@ -411,12 +491,16 @@ class Recorded(AbstractContextManager):
         calls.append('second')
 ```
 
-(If any of these fixtures previously stored module-level state under different names, preserve those names — read the file before rewriting.)
+(If any of these fixtures previously stored module-level state under
+different names, preserve those names — read the file before
+rewriting.)
 
 - [ ] **Step 3: Run the full suite**
 
 Run: `uv run python -m unittest discover -v`
-Expected: pass. The runner's new `isinstance(unit, type)` path picks up the decorator-marked classes; `_public_methods` is unchanged.
+
+Expected: pass. The runner's new `isinstance(unit, type)` path picks up
+the decorator-marked classes; `_public_methods` is unchanged.
 
 - [ ] **Step 4: Commit**
 
@@ -430,6 +514,7 @@ git commit -m "test: migrate runner fixtures to @test class style"
 ## Task 4: Update class-helper tests to the decorator style
 
 **Files:**
+
 - Modify: `tests/test_test_class.py`
 
 - [ ] **Step 1: Read the existing file**
@@ -573,6 +658,7 @@ if __name__ == '__main__':
 - [ ] **Step 3: Run the file**
 
 Run: `uv run python -m unittest tests.test_test_class -v`
+
 Expected: pass.
 
 - [ ] **Step 4: Commit**
@@ -587,6 +673,7 @@ git commit -m "test: rework class-helper tests for decorator-style marking"
 ## Task 5: Remove `Test` from the public API and the source module
 
 **Files:**
+
 - Modify: `src/assertions/_test_class.py`
 - Modify: `src/assertions/__init__.py`
 - Modify: `src/assertions/_markers.py`
@@ -616,7 +703,9 @@ def _public_methods(cls: type) -> list[str]:
 
 - [ ] **Step 2: Drop `Test` from `__init__.py`**
 
-In `src/assertions/__init__.py`, remove the line `from assertions._test_class import Test` and the `'Test',` entry in `__all__`. Final file:
+In `src/assertions/__init__.py`, remove the line `from
+assertions._test_class import Test` and the `'Test',` entry in
+`__all__`. Final file:
 
 ```python
 from assertions._catches import catch_exceptions, catch_warnings
@@ -663,7 +752,9 @@ def test(target):
 - [ ] **Step 4: Run the full suite**
 
 Run: `uv run python -m unittest discover -v`
-Expected: pass. No remaining import of `Test` from `assertions` is reached because Tasks 3 and 4 already migrated every consumer.
+
+Expected: pass. No remaining import of `Test` from `assertions` is
+reached because Tasks 3 and 4 already migrated every consumer.
 
 - [ ] **Step 5: Search for stragglers**
 
@@ -685,6 +776,7 @@ git commit -m "refactor: remove Test base class; @test marks classes too"
 ## Task 6: Rename `_test_class.py` to `_class_helpers.py`
 
 **Files:**
+
 - Rename: `src/assertions/_test_class.py` → `src/assertions/_class_helpers.py`
 - Rename: `tests/test_test_class.py` → `tests/test_class_helpers.py`
 - Modify: `src/assertions/_runner.py`
@@ -743,6 +835,7 @@ git commit -m "refactor: rename _test_class to _class_helpers"
 ## Task 7: Update docs and examples
 
 **Files:**
+
 - Modify: `doc/examples/classes.py`
 - Modify: `doc/roadmap/examples/django.py`
 - Modify: `README.md`
@@ -814,7 +907,8 @@ class ThereIsASuperuser:
         assert User.objects.filter(is_superuser=True).exists()
 ```
 
-(The current file does not provide `__enter__`/`__exit__`, so no `AbstractContextManager` inheritance is needed.)
+(The current file does not provide `__enter__`/`__exit__`, so no
+`AbstractContextManager` inheritance is needed.)
 
 - [ ] **Step 3: Update the test-class block in `README.md`**
 
@@ -843,11 +937,13 @@ class OrThings:
 - [ ] **Step 4: Sanity-check the example file imports**
 
 Run: `uv run python -c "import importlib.util, pathlib; spec = importlib.util.spec_from_file_location('classes', pathlib.Path('doc/examples/classes.py')); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)"`
+
 Expected: exits cleanly (no `ImportError`, no `NameError`).
 
 - [ ] **Step 5: Run the full suite once more**
 
 Run: `uv run python -m unittest discover -v`
+
 Expected: pass.
 
 - [ ] **Step 6: Commit**
@@ -864,21 +960,27 @@ git commit -m "docs: drop Test base class from examples and README"
 - [ ] **Step 1: Confirm `Test` is fully gone from the codebase**
 
 Run: `grep -rn "\bTest\b" src tests doc | grep -v "TestMarker\|unittest\|TestCase\|Tests\b" || true`
-Expected: only matches relating to `unittest.TestCase` or `Tests` words inside class names like `TestRunner`. No `assertions.Test` references.
+
+Expected: only matches relating to `unittest.TestCase` or `Tests` words
+inside class names like `TestRunner`. No `assertions.Test` references.
 
 - [ ] **Step 2: Run the full test suite via the project entrypoint**
 
 Run: `uv run python -m unittest discover -v`
+
 Expected: pass.
 
 - [ ] **Step 3: Run the project's own self-discovery**
 
 Run: `uv run python -m assertions tests`
-Expected: pass (any pre-existing failures unrelated to this change are still pre-existing; flag them rather than masking).
+
+Expected: pass (any pre-existing failures unrelated to this change are
+still pre-existing; flag them rather than masking).
 
 - [ ] **Step 4: Format the changed Python files**
 
 Run: `uv run pre-commit run --all-files`
+
 Expected: pass, or pass after a single auto-format pass.
 
 - [ ] **Step 5: Final commit if formatting changed anything**
