@@ -61,7 +61,6 @@ the thin orchestrator that imports from the three new modules.
 
 | Test file | New / existing | Tests for |
 |-----------|----------------|-----------|
-| `tests/test_classify.py` | new | dotted-name resolution (the existing `_resolve_dotted` tests) |
 | `tests/test_walk.py` | new | `_walk_directory`, `_accepts_file`, exclusion logic |
 | `tests/test_loaders.py` | new | `_exec_module_from_path`, `_dotted_name_for_path` |
 | `tests/test_targets.py` | existing, slimmed | `parse_target` (integration: classification → walking/loading) |
@@ -70,6 +69,12 @@ Each test class moves to the file matching where its target lives.
 Where a single existing class tests both a low-level helper and
 `parse_target`, the helper-focused tests move and the
 orchestrator-focused tests stay in `test_targets.py`.
+
+There is no new `tests/test_classify.py` because no existing tests
+target `_resolve_dotted` directly; coverage of dotted-name resolution
+is carried by the `parse_target` integration tests in
+`tests/test_targets.py`. Adding direct unit tests for `_resolve_dotted`
+is deferred to a future test-improvement slice.
 
 `tests/test_config.py` is unchanged.
 
