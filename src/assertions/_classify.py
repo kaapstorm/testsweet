@@ -6,29 +6,22 @@ def _resolve_dotted(
     target: str,
 ) -> tuple[ModuleType, list[str] | None]:
     parts = target.split('.')
-    # Walk from longest prefix to shortest. The first attempt is the
-    # full string; on success, no selector tail.
-    head_parts = list(parts)
-    tail_parts: list[str] = []
     first_error: ModuleNotFoundError | None = None
-    while head_parts:
-        head = '.'.join(head_parts)
+
+    # Try each prefix from longest to shortest.
+    for prefix_length in range(len(parts), 0, -1):
+        head = '.'.join(parts[:prefix_length])
+        tail_parts = parts[prefix_length:]
         try:
             module = importlib.import_module(head)
         except ModuleNotFoundError as exc:
-            # Distinguish "head itself doesn't exist" from "head
-            # exists but raised ModuleNotFoundError on an internal
-            # import". exc.name is the missing dotted name; if it
-            # isn't head or a prefix of head, the failure came from
-            # inside a module we did manage to start importing —
-            # propagate rather than masking it as a bad selector.
-            if exc.name is None or not (
-                exc.name == head or head.startswith(exc.name + '.')
-            ):
+            if not _is_missing_prefix_error(exc, head):
+                # The prefix exists but raised inside its own
+                # imports — propagate rather than mask as a bad
+                # selector.
                 raise
             if first_error is None:
                 first_error = exc
-            tail_parts.insert(0, head_parts.pop())
             continue
         if not tail_parts:
             return module, None
@@ -38,5 +31,18 @@ def _resolve_dotted(
                 f'segments after module {head!r}'
             )
         return module, ['.'.join(tail_parts)]
+
+    # No prefix imported. Re-raise the natural error.
     assert first_error is not None
     raise first_error
+
+
+def _is_missing_prefix_error(
+    exc: ModuleNotFoundError,
+    head: str,
+) -> bool:
+    # The prefix itself is what's missing, vs an unrelated import
+    # inside the prefix's module.
+    return exc.name is not None and (
+        exc.name == head or head.startswith(exc.name + '.')
+    )
