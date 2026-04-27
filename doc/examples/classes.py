@@ -1,14 +1,16 @@
-from assertions import Test
+from contextlib import AbstractContextManager
+
+from assertions import test
 
 
-# A subclass of Test is a test class
-class OrThings(Test):
+@test
+class IdiomaticClassFixtures(AbstractContextManager):
     def __init__(self):
         self.dict1 = {'foo': 1}
         self.dict2 = {'bar': 2}
         self.db = {}
 
-    # Test classes are context managers for class fixtures
+    # Test classes use context managers for class fixtures
     def __enter__(self):
         self.db = {'foo': 1}
 
