@@ -1,53 +1,39 @@
 import importlib
 import unittest
 
-from assertions import Test, discover
+from assertions import discover, test
 from assertions._markers import TEST_MARKER
 from assertions._test_class import _public_methods
 
 
-class TestMarkerPropagation(unittest.TestCase):
-    def test_test_itself_has_no_marker(self):
-        self.assertFalse(hasattr(Test, TEST_MARKER))
-
-    def test_subclass_has_marker(self):
-        class Sub(Test):
+class TestDecoratorOnClass(unittest.TestCase):
+    def test_decorator_marks_class(self):
+        @test
+        class Cls:
             pass
 
-        self.assertIs(getattr(Sub, TEST_MARKER), True)
+        self.assertIs(getattr(Cls, TEST_MARKER), True)
 
-    def test_sub_subclass_has_marker(self):
-        class Sub(Test):
+    def test_undecorated_class_has_no_marker(self):
+        class Cls:
             pass
 
-        class SubSub(Sub):
-            pass
-
-        self.assertIs(getattr(SubSub, TEST_MARKER), True)
+        self.assertFalse(hasattr(Cls, TEST_MARKER))
 
 
 class TestDiscoverIntegration(unittest.TestCase):
-    def test_discover_returns_test_subclass(self):
+    def test_discover_returns_decorated_class(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
         result = discover(mod)
         self.assertEqual([cls.__name__ for cls in result], ['Simple'])
 
-    def test_discover_skips_imported_test_base_itself(self):
-        # Import Test into a namespace and confirm discover doesn't
-        # return the Test class itself.
-        import types
-
-        mod = types.ModuleType('synthetic')
-        mod.Test = Test  # type: ignore[attr-defined]
-        result = discover(mod)
-        self.assertEqual(result, [])
-
 
 class TestPublicMethods(unittest.TestCase):
     def test_returns_leaf_methods_in_definition_order(self):
-        class Cls(Test):
+        @test
+        class Cls:
             def b_method(self):
                 pass
 
@@ -60,7 +46,8 @@ class TestPublicMethods(unittest.TestCase):
         )
 
     def test_excludes_underscore_prefixed_methods(self):
-        class Cls(Test):
+        @test
+        class Cls:
             def _private(self):
                 pass
 
@@ -92,20 +79,21 @@ class TestPublicMethodsCurrentBehavior(unittest.TestCase):
     # narrow what counts as a "public method" should update them.
 
     def test_diamond_inheritance_follows_mro(self):
-        class A(Test):
+        class A:
             def from_a(self):
                 pass
 
             def shared(self):
                 pass
 
-        class B(Test):
+        class B:
             def from_b(self):
                 pass
 
             def shared(self):
                 pass
 
+        @test
         class Leaf(A, B):
             def from_leaf(self):
                 pass
@@ -116,7 +104,8 @@ class TestPublicMethodsCurrentBehavior(unittest.TestCase):
         )
 
     def test_staticmethod_is_included(self):
-        class Cls(Test):
+        @test
+        class Cls:
             @staticmethod
             def a_static():
                 pass
@@ -130,7 +119,8 @@ class TestPublicMethodsCurrentBehavior(unittest.TestCase):
         )
 
     def test_classmethod_is_excluded(self):
-        class Cls(Test):
+        @test
+        class Cls:
             @classmethod
             def a_class(cls):
                 pass
