@@ -12,7 +12,11 @@ _EXCLUDED_DIR_NAMES = frozenset({'__pycache__', 'node_modules'})
 def parse_target(
     target: str,
 ) -> list[tuple[ModuleType, list[str] | None]]:
-    if '/' in target or target.endswith('.py'):
+    if (
+        '/' in target
+        or target.endswith('.py')
+        or pathlib.Path(target).is_dir()
+    ):
         path = pathlib.Path(target).resolve()
         if path.is_dir():
             return [

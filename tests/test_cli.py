@@ -29,14 +29,6 @@ class TestCli(unittest.TestCase):
         self.assertIn('fails ... FAIL:', result.stdout)
         self.assertIn('AssertionError', result.stdout)
 
-    def test_no_arguments_exits_two(self):
-        result = _run_cli()
-        self.assertEqual(result.returncode, 2)
-        self.assertIn(
-            'usage: python -m assertions <target> [<target>...]',
-            result.stderr,
-        )
-
     def test_two_arguments_exits_two(self):
         result = _run_cli('a', 'b')
         self.assertNotEqual(result.returncode, 0)

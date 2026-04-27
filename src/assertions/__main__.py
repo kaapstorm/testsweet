@@ -5,27 +5,30 @@ from assertions._runner import run
 from assertions._targets import parse_target
 
 
-USAGE = 'usage: python -m assertions <target> [<target>...]'
+USAGE = 'usage: python -m assertions [<target>...]'
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) < 1:
-        print(USAGE, file=sys.stderr)
-        return 2
-    groups: list[tuple[ModuleType, list[str] | None]] = []
-    for arg in argv:
-        for module, names in parse_target(arg):
-            _add_to_groups(groups, module, names)
-    failed = False
-    for module, merged_names in groups:
-        results = run(module, names=merged_names)
-        for name, exc in results:
-            if exc is None:
-                print(f'{name} ... ok')
-            else:
-                print(f'{name} ... FAIL: {type(exc).__name__}: {exc}')
-                failed = True
-    return 1 if failed else 0
+    if not argv:
+        argv = ['.']
+    saved_sys_path = list(sys.path)
+    try:
+        groups: list[tuple[ModuleType, list[str] | None]] = []
+        for arg in argv:
+            for module, names in parse_target(arg):
+                _add_to_groups(groups, module, names)
+        failed = False
+        for module, merged_names in groups:
+            results = run(module, names=merged_names)
+            for name, exc in results:
+                if exc is None:
+                    print(f'{name} ... ok')
+                else:
+                    print(f'{name} ... FAIL: ' f'{type(exc).__name__}: {exc}')
+                    failed = True
+        return 1 if failed else 0
+    finally:
+        sys.path[:] = saved_sys_path
 
 
 def _add_to_groups(
