@@ -1,7 +1,7 @@
 import importlib
 import unittest
 
-from assertions import discover
+from testsweet import discover
 
 
 class TestDiscover(unittest.TestCase):

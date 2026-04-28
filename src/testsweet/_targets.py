@@ -1,10 +1,10 @@
 import pathlib
 from types import ModuleType
 
-from assertions._classify import _resolve_dotted
-from assertions._config import DiscoveryConfig
-from assertions._loaders import _load_path, _load_path_for_walk
-from assertions._walk import (
+from testsweet._classify import _resolve_dotted
+from testsweet._config import DiscoveryConfig
+from testsweet._loaders import _load_path, _load_path_for_walk
+from testsweet._walk import (
     _build_exclude_set,
     _resolve_include_paths,
     _walk_directory,

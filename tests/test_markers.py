@@ -1,7 +1,7 @@
 import unittest
 
-from assertions import test
-from assertions._markers import TEST_MARKER
+from testsweet import test
+from testsweet._markers import TEST_MARKER
 
 
 class TestDecorator(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestDecorator(unittest.TestCase):
         self.assertFalse(hasattr(f, TEST_MARKER))
 
     def test_marker_name_constant(self):
-        self.assertEqual(TEST_MARKER, '__assertions_test__')
+        self.assertEqual(TEST_MARKER, '__testsweet_test__')
 
 
 if __name__ == '__main__':

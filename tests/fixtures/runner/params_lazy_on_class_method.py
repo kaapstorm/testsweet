@@ -1,4 +1,4 @@
-from assertions import test, test_params_lazy
+from testsweet import test, test_params_lazy
 
 
 @test

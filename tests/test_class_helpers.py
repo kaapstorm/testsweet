@@ -1,9 +1,9 @@
 import importlib
 import unittest
 
-from assertions import discover, test
-from assertions._markers import TEST_MARKER
-from assertions._class_helpers import _public_methods
+from testsweet import discover, test
+from testsweet._markers import TEST_MARKER
+from testsweet._class_helpers import _public_methods
 
 
 class TestDecoratorOnClass(unittest.TestCase):

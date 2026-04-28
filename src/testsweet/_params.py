@@ -1,9 +1,9 @@
 from typing import Callable, Iterable
 
-from assertions._markers import TEST_MARKER
+from testsweet._markers import TEST_MARKER
 
 
-PARAMS_MARKER = '__assertions_params__'
+PARAMS_MARKER = '__testsweet_params__'
 
 
 def test_params(args_iterable: Iterable) -> Callable:

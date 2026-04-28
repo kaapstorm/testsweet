@@ -1,4 +1,4 @@
-TEST_MARKER = '__assertions_test__'
+TEST_MARKER = '__testsweet_test__'
 
 
 def test(target):

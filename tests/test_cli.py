@@ -9,7 +9,7 @@ _REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, '-m', 'assertions', *args],
+        [sys.executable, '-m', 'testsweet', *args],
         capture_output=True,
         text=True,
     )
@@ -111,7 +111,7 @@ class TestCli(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             (pathlib.Path(tmp) / 'test_simple.py').write_text(
                 textwrap.dedent("""
-                    from assertions import test
+                    from testsweet import test
 
                     @test
                     def passes():
@@ -119,7 +119,7 @@ class TestCli(unittest.TestCase):
                 """).lstrip()
             )
             result = subprocess.run(
-                [sys.executable, '-m', 'assertions'],
+                [sys.executable, '-m', 'testsweet'],
                 capture_output=True,
                 text=True,
                 cwd=tmp,
@@ -135,7 +135,7 @@ class TestCli(unittest.TestCase):
             root = pathlib.Path(tmp)
             (root / 'test_a.py').write_text(
                 textwrap.dedent("""
-                    from assertions import test
+                    from testsweet import test
 
                     @test
                     def passes_a():
@@ -146,7 +146,7 @@ class TestCli(unittest.TestCase):
             sub.mkdir()
             (sub / 'test_b.py').write_text(
                 textwrap.dedent("""
-                    from assertions import test
+                    from testsweet import test
 
                     @test
                     def passes_b():
@@ -154,7 +154,7 @@ class TestCli(unittest.TestCase):
                 """).lstrip()
             )
             result = subprocess.run(
-                [sys.executable, '-m', 'assertions', tmp],
+                [sys.executable, '-m', 'testsweet', tmp],
                 capture_output=True,
                 text=True,
                 cwd=_REPO_ROOT,
@@ -168,10 +168,10 @@ class TestCli(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             (pathlib.Path(tmp) / 'broken.py').write_text(
-                'import this_does_not_exist_assertions_test\n'
+                'import this_does_not_exist_testsweet_test\n'
             )
             result = subprocess.run(
-                [sys.executable, '-m', 'assertions', tmp],
+                [sys.executable, '-m', 'testsweet', tmp],
                 capture_output=True,
                 text=True,
                 cwd=_REPO_ROOT,
@@ -184,7 +184,7 @@ class TestCli(unittest.TestCase):
         import tempfile
         import textwrap
 
-        from assertions import __main__ as cli_main
+        from testsweet import __main__ as cli_main
 
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
@@ -193,7 +193,7 @@ class TestCli(unittest.TestCase):
             (pkg / '__init__.py').write_text('')
             (pkg / 'test_inside.py').write_text(
                 textwrap.dedent("""
-                    from assertions import test
+                    from testsweet import test
 
                     @test
                     def passes():
@@ -219,7 +219,7 @@ class TestCli(unittest.TestCase):
 
     def _passing_test(self, func_name='passes'):
         return f"""
-            from assertions import test
+            from testsweet import test
 
             @test
             def {func_name}():
@@ -246,10 +246,10 @@ class TestCli(unittest.TestCase):
                 self._passing_test('in_other'),
             )
             (root / 'pyproject.toml').write_text(
-                '[tool.assertions.discovery]\n' 'include_paths = ["sub/**"]\n'
+                '[tool.testsweet.discovery]\n' 'include_paths = ["sub/**"]\n'
             )
             result = subprocess.run(
-                [sys.executable, '-m', 'assertions'],
+                [sys.executable, '-m', 'testsweet'],
                 capture_output=True,
                 text=True,
                 cwd=tmp,
@@ -276,11 +276,11 @@ class TestCli(unittest.TestCase):
                 self._passing_test('drop'),
             )
             (root / 'pyproject.toml').write_text(
-                '[tool.assertions.discovery]\n'
+                '[tool.testsweet.discovery]\n'
                 'exclude_paths = ["vendored/**"]\n'
             )
             result = subprocess.run(
-                [sys.executable, '-m', 'assertions'],
+                [sys.executable, '-m', 'testsweet'],
                 capture_output=True,
                 text=True,
                 cwd=tmp,
@@ -305,10 +305,10 @@ class TestCli(unittest.TestCase):
                 self._passing_test('skipped'),
             )
             (root / 'pyproject.toml').write_text(
-                '[tool.assertions.discovery]\n' 'test_files = ["test_*.py"]\n'
+                '[tool.testsweet.discovery]\n' 'test_files = ["test_*.py"]\n'
             )
             result = subprocess.run(
-                [sys.executable, '-m', 'assertions'],
+                [sys.executable, '-m', 'testsweet'],
                 capture_output=True,
                 text=True,
                 cwd=tmp,
@@ -337,10 +337,10 @@ class TestCli(unittest.TestCase):
                 self._passing_test('in_other'),
             )
             (root / 'pyproject.toml').write_text(
-                '[tool.assertions.discovery]\n' 'include_paths = ["sub/**"]\n'
+                '[tool.testsweet.discovery]\n' 'include_paths = ["sub/**"]\n'
             )
             result = subprocess.run(
-                [sys.executable, '-m', 'assertions', 'other'],
+                [sys.executable, '-m', 'testsweet', 'other'],
                 capture_output=True,
                 text=True,
                 cwd=tmp,
@@ -369,11 +369,11 @@ class TestCli(unittest.TestCase):
                 self._passing_test('drop'),
             )
             (root / 'pyproject.toml').write_text(
-                '[tool.assertions.discovery]\n'
+                '[tool.testsweet.discovery]\n'
                 'exclude_paths = ["src/vendored/**"]\n'
             )
             result = subprocess.run(
-                [sys.executable, '-m', 'assertions', 'src'],
+                [sys.executable, '-m', 'testsweet', 'src'],
                 capture_output=True,
                 text=True,
                 cwd=tmp,
@@ -393,10 +393,10 @@ class TestCli(unittest.TestCase):
                 self._passing_test('a'),
             )
             (root / 'pyproject.toml').write_text(
-                '[tool.assertions.discovery]\n' 'typoed_key = ["nope"]\n'
+                '[tool.testsweet.discovery]\n' 'typoed_key = ["nope"]\n'
             )
             result = subprocess.run(
-                [sys.executable, '-m', 'assertions'],
+                [sys.executable, '-m', 'testsweet'],
                 capture_output=True,
                 text=True,
                 cwd=tmp,

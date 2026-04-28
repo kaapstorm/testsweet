@@ -2,7 +2,7 @@ import fnmatch
 import os
 import pathlib
 
-from assertions._config import DiscoveryConfig
+from testsweet._config import DiscoveryConfig
 
 
 _EXCLUDED_DIR_NAMES = frozenset({'__pycache__', 'node_modules'})

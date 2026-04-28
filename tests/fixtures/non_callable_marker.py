@@ -1,4 +1,4 @@
-from assertions._markers import TEST_MARKER
+from testsweet._markers import TEST_MARKER
 
 
 class _Marked:

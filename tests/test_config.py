@@ -3,8 +3,8 @@ import tempfile
 import textwrap
 import unittest
 
-from assertions import ConfigurationError
-from assertions._config import DiscoveryConfig, load_config
+from testsweet import ConfigurationError
+from testsweet._config import DiscoveryConfig, load_config
 
 
 class TestLoadConfig(unittest.TestCase):
@@ -34,7 +34,7 @@ class TestLoadConfig(unittest.TestCase):
             root = pathlib.Path(tmp)
             (root / 'pyproject.toml').write_text(
                 textwrap.dedent("""
-                    [tool.assertions.discovery]
+                    [tool.testsweet.discovery]
                     include_paths = ["tests/**"]
                     exclude_paths = ["src/vendored/**"]
                     test_files = ["test_*.py", "*_tests.py"]
@@ -66,7 +66,7 @@ class TestLoadConfig(unittest.TestCase):
             root = pathlib.Path(tmp)
             (root / 'pyproject.toml').write_text(
                 textwrap.dedent("""
-                    [tool.assertions.discovery]
+                    [tool.testsweet.discovery]
                     include_paths = "tests/"
                 """).lstrip()
             )
@@ -79,7 +79,7 @@ class TestLoadConfig(unittest.TestCase):
             root = pathlib.Path(tmp)
             (root / 'pyproject.toml').write_text(
                 textwrap.dedent("""
-                    [tool.assertions.discovery]
+                    [tool.testsweet.discovery]
                     test_files = ["test_*.py", 42]
                 """).lstrip()
             )
@@ -92,7 +92,7 @@ class TestLoadConfig(unittest.TestCase):
             root = pathlib.Path(tmp)
             (root / 'pyproject.toml').write_text(
                 textwrap.dedent("""
-                    [tool.assertions.discovery]
+                    [tool.testsweet.discovery]
                     include_paths = ["tests/**"]
                     typoed_key = ["nope"]
                 """).lstrip()

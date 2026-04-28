@@ -1,9 +1,9 @@
 import pathlib
 import sys
 
-from assertions._config import load_config
-from assertions._runner import run
-from assertions._targets import discover_targets
+from testsweet._config import load_config
+from testsweet._runner import run
+from testsweet._targets import discover_targets
 
 
 def main(argv: list[str]) -> int:

@@ -3,7 +3,7 @@ import tempfile
 import unittest
 import unittest.mock
 
-from assertions._walk import _walk_directory
+from testsweet._walk import _walk_directory
 
 
 class TestWalkDirectory(unittest.TestCase):
@@ -77,8 +77,8 @@ class TestWalkDirectory(unittest.TestCase):
 
 class TestWalkDirectoryWithConfig(unittest.TestCase):
     def test_test_files_filter_keeps_matching_names(self):
-        from assertions._config import DiscoveryConfig
-        from assertions._walk import _walk_directory
+        from testsweet._config import DiscoveryConfig
+        from testsweet._walk import _walk_directory
 
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
@@ -95,8 +95,8 @@ class TestWalkDirectoryWithConfig(unittest.TestCase):
         )
 
     def test_test_files_filter_with_no_match(self):
-        from assertions._config import DiscoveryConfig
-        from assertions._walk import _walk_directory
+        from testsweet._config import DiscoveryConfig
+        from testsweet._walk import _walk_directory
 
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
@@ -106,8 +106,8 @@ class TestWalkDirectoryWithConfig(unittest.TestCase):
         self.assertEqual(paths, [])
 
     def test_excluded_set_drops_files(self):
-        from assertions._config import DiscoveryConfig
-        from assertions._walk import _walk_directory
+        from testsweet._config import DiscoveryConfig
+        from testsweet._walk import _walk_directory
 
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
@@ -126,7 +126,7 @@ class TestWalkDirectoryWithConfig(unittest.TestCase):
         )
 
     def test_default_args_preserve_old_behavior(self):
-        from assertions._walk import _walk_directory
+        from testsweet._walk import _walk_directory
 
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
@@ -139,8 +139,8 @@ class TestWalkDirectoryWithConfig(unittest.TestCase):
         )
 
     def test_filters_apply_with_excluded(self):
-        from assertions._config import DiscoveryConfig
-        from assertions._walk import _walk_directory
+        from testsweet._config import DiscoveryConfig
+        from testsweet._walk import _walk_directory
 
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)

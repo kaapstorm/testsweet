@@ -1,4 +1,4 @@
-from assertions import test_params
+from testsweet import test_params
 
 
 @test_params([(1, 1, 2), (1, 1, 99), (2, 3, 5)])

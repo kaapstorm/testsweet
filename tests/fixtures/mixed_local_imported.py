@@ -1,4 +1,4 @@
-from assertions import test
+from testsweet import test
 from tests.fixtures.single import only_test  # noqa: F401
 
 

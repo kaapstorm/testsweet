@@ -1,6 +1,6 @@
 from contextlib import AbstractContextManager
 
-from assertions import test
+from testsweet import test
 
 
 # Plain class: @test marks it; all public methods are tests.

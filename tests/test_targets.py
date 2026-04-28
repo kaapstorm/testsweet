@@ -5,8 +5,8 @@ import sys
 import tempfile
 import unittest
 
-from assertions._config import DiscoveryConfig
-from assertions._targets import discover_targets, parse_target
+from testsweet._config import DiscoveryConfig
+from testsweet._targets import discover_targets, parse_target
 
 
 _FIXTURES = pathlib.Path(__file__).resolve().parent / 'fixtures' / 'runner'
@@ -127,13 +127,13 @@ class TestParseTargetDirectory(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
             (root / 'a.py').write_text(
-                'from assertions import test\n'
+                'from testsweet import test\n'
                 '@test\n'
                 'def t():\n'
                 '    pass\n'
             )
             (root / 'b.py').write_text(
-                'from assertions import test\n'
+                'from testsweet import test\n'
                 '@test\n'
                 'def t():\n'
                 '    pass\n'
@@ -256,13 +256,13 @@ class TestDiscoverTargets(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
             (root / 'a.py').write_text(
-                'from assertions import test\n'
+                'from testsweet import test\n'
                 '@test\n'
                 'def t():\n'
                 '    pass\n'
             )
             (root / 'b.py').write_text(
-                'from assertions import test\n'
+                'from testsweet import test\n'
                 '@test\n'
                 'def t():\n'
                 '    pass\n'
@@ -279,7 +279,7 @@ class TestDiscoverTargets(unittest.TestCase):
             sub = root / 'sub'
             sub.mkdir()
             (sub / 'in_sub.py').write_text(
-                'from assertions import test\n'
+                'from testsweet import test\n'
                 '@test\n'
                 'def in_sub():\n'
                 '    pass\n'
@@ -287,7 +287,7 @@ class TestDiscoverTargets(unittest.TestCase):
             other = root / 'other'
             other.mkdir()
             (other / 'in_other.py').write_text(
-                'from assertions import test\n'
+                'from testsweet import test\n'
                 '@test\n'
                 'def in_other():\n'
                 '    pass\n'
@@ -317,7 +317,7 @@ class TestDiscoverTargets(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp).resolve()
             (root / 'cwd_test.py').write_text(
-                'from assertions import test\n'
+                'from testsweet import test\n'
                 '@test\n'
                 'def from_cwd():\n'
                 '    pass\n'

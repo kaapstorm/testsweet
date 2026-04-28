@@ -24,7 +24,7 @@ def load_config(start: pathlib.Path) -> DiscoveryConfig:
         return DiscoveryConfig()
     project_root = pyproject.parent.resolve()
     raw = tomllib.loads(pyproject.read_text())
-    section = raw.get('tool', {}).get('assertions', {}).get('discovery', {})
+    section = raw.get('tool', {}).get('testsweet', {}).get('discovery', {})
     return _build_config(section, project_root)
 
 
@@ -47,7 +47,7 @@ def _build_config(
     if unknown:
         raise ConfigurationError(
             f'unknown key {sorted(unknown)[0]!r} in '
-            f'[tool.assertions.discovery]'
+            f'[tool.testsweet.discovery]'
         )
     return DiscoveryConfig(
         include_paths=_to_string_tuple(
@@ -69,11 +69,11 @@ def _build_config(
 def _to_string_tuple(value: object, key: str) -> tuple[str, ...]:
     if not isinstance(value, list):
         raise ConfigurationError(
-            f'tool.assertions.discovery.{key} must be a list of strings'
+            f'tool.testsweet.discovery.{key} must be a list of strings'
         )
     for item in value:
         if not isinstance(item, str):
             raise ConfigurationError(
-                f'tool.assertions.discovery.{key} must be a list of strings'
+                f'tool.testsweet.discovery.{key} must be a list of strings'
             )
     return tuple(value)

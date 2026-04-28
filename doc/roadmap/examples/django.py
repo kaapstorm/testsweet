@@ -1,8 +1,8 @@
-from assertions import test
-from assertions.django import uses_db
+from testsweet import test
+from testsweet.django import uses_db
 
 
-# assertions.django.uses_db decorates functions and classes
+# testsweet.django.uses_db decorates functions and classes
 @uses_db
 @test
 def there_is_a_superuser():

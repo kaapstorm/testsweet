@@ -1,7 +1,7 @@
 from types import ModuleType
 from typing import Callable
 
-from assertions._markers import TEST_MARKER
+from testsweet._markers import TEST_MARKER
 
 
 def discover(module: ModuleType) -> list[Callable]:

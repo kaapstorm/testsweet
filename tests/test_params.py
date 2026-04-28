@@ -1,8 +1,8 @@
 import unittest
 
-from assertions import test_params, test_params_lazy
-from assertions._markers import TEST_MARKER
-from assertions._params import PARAMS_MARKER
+from testsweet import test_params, test_params_lazy
+from testsweet._markers import TEST_MARKER
+from testsweet._params import PARAMS_MARKER
 
 
 class TestParamsEager(unittest.TestCase):

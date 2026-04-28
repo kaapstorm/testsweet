@@ -1,6 +1,6 @@
 from contextlib import AbstractContextManager
 
-from assertions import test
+from testsweet import test
 
 
 CALLS: list[str] = []

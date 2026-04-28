@@ -1,4 +1,4 @@
-from assertions import test_params_lazy
+from testsweet import test_params_lazy
 
 
 def get_args():

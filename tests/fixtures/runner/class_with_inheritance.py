@@ -1,4 +1,4 @@
-from assertions import test
+from testsweet import test
 
 
 class _Base:

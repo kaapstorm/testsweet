@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from assertions import test, test_params
+from testsweet import test, test_params
 
 
 # Tests are identified by the `test` decorator

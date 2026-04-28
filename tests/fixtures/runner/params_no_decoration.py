@@ -1,4 +1,4 @@
-from assertions import test, test_params
+from testsweet import test, test_params
 
 
 @test

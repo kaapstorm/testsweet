@@ -1,5 +1,5 @@
-Assertions
-==========
+Testsweet
+=========
 
 Python testing for humans
 
@@ -26,7 +26,7 @@ work is magical, especially when they are imported
 [invisibly](https://docs.pytest.org/en/stable/how-to/writing_plugins.html#localplugin).
 It doesn't make it past the second line of the Zen of Python.
 
-Assertions intends to be a Python testing library that uses existing
+Testsweet intends to be a Python testing library that uses existing
 Python features and idioms: A kind and simple interface, explicit in its
 architecture, enabling the tests that use it to be beautiful.
 
@@ -37,7 +37,7 @@ Examples
 A test function:
 
 ```python
-from assertions import test
+from testsweet import test
 
 
 @test
@@ -48,7 +48,7 @@ def or_dicts():
 A test class:
 
 ```python
-from assertions import test
+from testsweet import test
 
 
 @test
@@ -61,7 +61,7 @@ Catching exceptions and warnings:
 
 ```python
 import warnings
-from assertions import catch_exceptions, catch_warnings, test
+from testsweet import catch_exceptions, catch_warnings, test
 
 
 @test
@@ -82,9 +82,9 @@ def deprecated():
 Running tests:
 
 ```shell
-python -m assertions tests.test_module.TestClass.test_method
-python -m assertions tests/test_module.py
-python -m assertions  # Discover tests
+python -m testsweet tests.test_module.TestClass.test_method
+python -m testsweet tests/test_module.py
+python -m testsweet  # Discover tests
 ```
 
 

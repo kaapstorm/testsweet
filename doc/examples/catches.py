@@ -1,5 +1,5 @@
 import warnings
-from assertions import catch_exceptions, catch_warnings, test
+from testsweet import catch_exceptions, catch_warnings, test
 
 
 @test

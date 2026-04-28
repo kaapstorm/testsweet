@@ -1,7 +1,7 @@
 import importlib
 import unittest
 
-from assertions import run
+from testsweet import run
 
 
 class TestRun(unittest.TestCase):

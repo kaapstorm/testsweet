@@ -4,9 +4,9 @@ from contextlib import nullcontext
 from types import ModuleType
 from typing import Any, Callable, Iterator
 
-from assertions._class_helpers import _public_methods
-from assertions._discover import discover
-from assertions._params import PARAMS_MARKER
+from testsweet._class_helpers import _public_methods
+from testsweet._discover import discover
+from testsweet._params import PARAMS_MARKER
 
 
 def resolve_units(

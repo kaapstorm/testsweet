@@ -2,7 +2,7 @@ import functools
 import importlib
 import unittest
 
-from assertions._resolve import resolve_units
+from testsweet._resolve import resolve_units
 
 
 class TestResolveUnits(unittest.TestCase):

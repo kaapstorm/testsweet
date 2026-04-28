@@ -1,5 +1,5 @@
 [project]
-name = "Assertions"
+name = "testsweet"
 version = "0.1.0"
 description = "Python testing for humans"
 readme = "README.md"

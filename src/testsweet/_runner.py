@@ -1,6 +1,6 @@
 from types import ModuleType
 
-from assertions._resolve import resolve_units
+from testsweet._resolve import resolve_units
 
 
 def run(

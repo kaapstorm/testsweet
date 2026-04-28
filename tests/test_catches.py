@@ -1,7 +1,7 @@
 import unittest
 import warnings
 
-from assertions import catch_exceptions, catch_warnings
+from testsweet import catch_exceptions, catch_warnings
 
 
 class TestCatchExceptions(unittest.TestCase):
