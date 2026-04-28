@@ -59,28 +59,6 @@ class OrThings:
         assert {'foo': 1} | {'bar': 2} == {'foo': 1, 'bar': 2}
 ```
 
-Catching exceptions and warnings:
-
-```python
-import warnings
-from testsweet import catch_exceptions, catch_warnings, test
-
-
-@test
-def zero_div():
-    with catch_exceptions() as excs:
-        1 / 0
-    assert type(excs[0]) is ZeroDivisionError
-
-
-@test
-def deprecated():
-    with catch_warnings() as warns:
-        warnings.warn('use new_func', DeprecationWarning)
-    assert type(warns[0]) is DeprecationWarning
-    assert 'new_func' in str(warns[0])
-```
-
 Running tests:
 
 ```shell
@@ -90,8 +68,15 @@ python -m testsweet  # Discover tests
 ```
 
 
-Installing
-----------
+Documentation
+-------------
+
+* [Getting Started](docs/getting-started.md)
+* [Reference](docs/reference.md)
+
+
+Contributing
+------------
 
 This project uses [uv](https://docs.astral.sh/uv/) for dependency and
 environment management.
