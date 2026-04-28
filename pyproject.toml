@@ -1,10 +1,27 @@
 [project]
 name = "testsweet"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python testing for humans"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 dependencies = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Testing",
+]
+
+[project.urls]
+Homepage = "https://github.com/kaapstorm/testsweet"
+Source = "https://github.com/kaapstorm/testsweet"
+Issues = "https://github.com/kaapstorm/testsweet/issues"
 
 [build-system]
 requires = ["hatchling"]
