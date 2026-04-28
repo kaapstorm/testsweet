@@ -1,39 +1,34 @@
-import unittest
-
 from testsweet import test
 from testsweet._markers import TEST_MARKER
 
 
-class TestDecorator(unittest.TestCase):
-    def test_returns_same_function_object(self):
+@test
+class Decorator:
+    def returns_same_function_object(self):
         def f():
             pass
 
-        self.assertIs(test(f), f)
+        assert test(f) is f
 
-    def test_sets_marker_attribute_to_true(self):
+    def sets_marker_attribute_to_true(self):
         @test
         def f():
             pass
 
-        self.assertIs(getattr(f, TEST_MARKER), True)
+        assert getattr(f, TEST_MARKER) is True
 
-    def test_decorated_function_still_runs_and_returns_value(self):
+    def decorated_function_still_runs_and_returns_value(self):
         @test
         def f():
             return 42
 
-        self.assertEqual(f(), 42)
+        assert f() == 42
 
-    def test_undecorated_function_has_no_marker(self):
+    def undecorated_function_has_no_marker(self):
         def f():
             pass
 
-        self.assertFalse(hasattr(f, TEST_MARKER))
+        assert not hasattr(f, TEST_MARKER)
 
-    def test_marker_name_constant(self):
-        self.assertEqual(TEST_MARKER, '__testsweet_test__')
-
-
-if __name__ == '__main__':
-    unittest.main()
+    def marker_name_constant(self):
+        assert TEST_MARKER == '__testsweet_test__'
