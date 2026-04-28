@@ -3,8 +3,8 @@ import importlib
 import pathlib
 import sys
 import tempfile
-import unittest
 
+from testsweet import catch_exceptions, test
 from testsweet._config import DiscoveryConfig
 from testsweet._targets import discover_targets, parse_target
 
@@ -12,118 +12,116 @@ from testsweet._targets import discover_targets, parse_target
 _FIXTURES = pathlib.Path(__file__).resolve().parent / 'fixtures' / 'runner'
 
 
-class TestParseTarget(unittest.TestCase):
-    def test_dotted_module_no_selector(self):
+@test
+class ParseTarget:
+    def dotted_module_no_selector(self):
         result = parse_target('tests.fixtures.runner.all_pass')
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         module, names = result[0]
         expected = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
-        self.assertIs(module, expected)
-        self.assertIsNone(names)
+        assert module is expected
+        assert names is None
 
-    def test_relative_file_path(self):
-        result = parse_target(
-            'tests/fixtures/runner/all_pass.py',
-        )
-        self.assertEqual(len(result), 1)
+    def relative_file_path(self):
+        result = parse_target('tests/fixtures/runner/all_pass.py')
+        assert len(result) == 1
         module, names = result[0]
-        self.assertIsNone(names)
-        self.assertTrue(hasattr(module, 'passes_one'))
-        self.assertTrue(hasattr(module, 'passes_two'))
+        assert names is None
+        assert hasattr(module, 'passes_one')
+        assert hasattr(module, 'passes_two')
 
-    def test_relative_file_path_with_dot(self):
-        result = parse_target(
-            './tests/fixtures/runner/all_pass.py',
-        )
-        self.assertEqual(len(result), 1)
+    def relative_file_path_with_dot(self):
+        result = parse_target('./tests/fixtures/runner/all_pass.py')
+        assert len(result) == 1
         module, names = result[0]
-        self.assertIsNone(names)
-        self.assertTrue(hasattr(module, 'passes_one'))
+        assert names is None
+        assert hasattr(module, 'passes_one')
 
-    def test_absolute_file_path(self):
+    def absolute_file_path(self):
         path = (_FIXTURES / 'all_pass.py').resolve()
         result = parse_target(str(path))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         module, names = result[0]
-        self.assertIsNone(names)
-        self.assertTrue(hasattr(module, 'passes_one'))
+        assert names is None
+        assert hasattr(module, 'passes_one')
 
-    def test_dotted_selector_one_segment(self):
+    def dotted_selector_one_segment(self):
         result = parse_target(
             'tests.fixtures.runner.all_pass.passes_one',
         )
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         module, names = result[0]
         expected = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
-        self.assertIs(module, expected)
-        self.assertEqual(names, ['passes_one'])
+        assert module is expected
+        assert names == ['passes_one']
 
-    def test_dotted_selector_class_only(self):
+    def dotted_selector_class_only(self):
         result = parse_target(
             'tests.fixtures.runner.class_simple.Simple',
         )
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         module, names = result[0]
         expected = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
-        self.assertIs(module, expected)
-        self.assertEqual(names, ['Simple'])
+        assert module is expected
+        assert names == ['Simple']
 
-    def test_dotted_selector_class_method(self):
+    def dotted_selector_class_method(self):
         result = parse_target(
             'tests.fixtures.runner.class_simple.Simple.first',
         )
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         module, names = result[0]
         expected = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
-        self.assertIs(module, expected)
-        self.assertEqual(names, ['Simple.first'])
+        assert module is expected
+        assert names == ['Simple.first']
 
-    def test_dotted_too_many_segments(self):
-        with self.assertRaises(LookupError):
+    def dotted_too_many_segments(self):
+        with catch_exceptions() as excs:
             parse_target(
-                'tests.fixtures.runner.class_simple.' 'Simple.first.extra',
+                'tests.fixtures.runner.class_simple.Simple.first.extra',
             )
+        assert len(excs) == 1
+        assert isinstance(excs[0], LookupError)
 
-    def test_dotted_no_importable_prefix(self):
-        with self.assertRaises(ModuleNotFoundError):
+    def dotted_no_importable_prefix(self):
+        with catch_exceptions() as excs:
             parse_target('totally.not.a.module')
+        assert len(excs) == 1
+        assert isinstance(excs[0], ModuleNotFoundError)
 
-    def test_internal_import_error_propagates(self):
-        with self.assertRaises(ModuleNotFoundError) as ctx:
+    def internal_import_error_propagates(self):
+        with catch_exceptions() as excs:
             parse_target('tests.fixtures.runner.has_broken_import')
-        self.assertEqual(
-            ctx.exception.name,
-            'this_dependency_does_not_exist',
-        )
+        assert len(excs) == 1
+        assert isinstance(excs[0], ModuleNotFoundError)
+        assert excs[0].name == 'this_dependency_does_not_exist'
 
 
-class TestParseTargetDirectory(unittest.TestCase):
-    # parse_target on a directory imports each discovered .py file,
-    # which adds entries to sys.modules. Snapshot and restore so
-    # short-lived tmp-dir module names (`a`, `b`, etc.) don't leak
-    # between tests and shadow each other on subsequent runs.
-
-    def setUp(self):
-        import sys
-
+# parse_target on a directory imports each discovered .py file,
+# which adds entries to sys.modules. Snapshot and restore so
+# short-lived tmp-dir module names (`a`, `b`, etc.) don't leak
+# between tests and shadow each other on subsequent runs.
+@test
+class ParseTargetDirectory:
+    def __enter__(self):
         self._saved_modules = dict(sys.modules)
+        return self
 
-    def tearDown(self):
-        import sys
-
+    def __exit__(self, exc_type, exc, tb):
         for name in list(sys.modules):
             if name not in self._saved_modules:
                 del sys.modules[name]
+        return None
 
-    def test_directory_yields_one_entry_per_py_file(self):
+    def directory_yields_one_entry_per_py_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
             (root / 'a.py').write_text(
@@ -139,62 +137,66 @@ class TestParseTargetDirectory(unittest.TestCase):
                 '    pass\n'
             )
             result = parse_target(str(root))
-            self.assertEqual(len(result), 2)
+            assert len(result) == 2
             for module, names in result:
-                self.assertIsNone(names)
+                assert names is None
 
-    def test_nonexistent_directory_raises(self):
-        with self.assertRaises((FileNotFoundError, ImportError)):
+    def nonexistent_directory_raises(self):
+        with catch_exceptions() as excs:
             parse_target('/this/path/really/should/not/exist/abc/')
+        assert len(excs) == 1
+        assert isinstance(excs[0], (FileNotFoundError, ImportError))
 
-    def test_empty_directory_returns_empty_list(self):
+    def empty_directory_returns_empty_list(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = parse_target(str(pathlib.Path(tmp)))
-            self.assertEqual(result, [])
+            assert result == []
 
 
-class TestDiscoverTargets(unittest.TestCase):
-    # discover_targets imports test modules from temp directories,
-    # which leaves entries in sys.modules. Snapshot/restore so
-    # short-lived tmp-dir module names don't leak between tests.
-
-    def setUp(self):
+# discover_targets imports test modules from temp directories, which
+# leaves entries in sys.modules. Snapshot/restore so short-lived
+# tmp-dir module names don't leak between tests.
+@test
+class DiscoverTargets:
+    def __enter__(self):
         self._saved_modules = dict(sys.modules)
+        return self
 
-    def tearDown(self):
+    def __exit__(self, exc_type, exc, tb):
         for name in list(sys.modules):
             if name not in self._saved_modules:
                 del sys.modules[name]
+        return None
 
-    def test_single_dotted_module(self):
+    def single_dotted_module(self):
         config = DiscoveryConfig()
         groups = discover_targets(
             ['tests.fixtures.runner.all_pass'],
             config,
         )
-        self.assertEqual(len(groups), 1)
+        assert len(groups) == 1
         module, names = groups[0]
         expected = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
-        self.assertIs(module, expected)
-        self.assertIsNone(names)
+        assert module is expected
+        assert names is None
 
-    def test_single_selector_returns_module_with_names(self):
+    def single_selector_returns_module_with_names(self):
         config = DiscoveryConfig()
         groups = discover_targets(
             ['tests.fixtures.runner.class_simple.Simple.first'],
             config,
         )
-        self.assertEqual(len(groups), 1)
+        assert len(groups) == 1
         module, names = groups[0]
         expected = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
-        self.assertIs(module, expected)
-        self.assertEqual(names, ['Simple.first'])
+        assert module is expected
+        assert names == ['Simple.first']
 
-    def test_two_distinct_modules(self):
+    def two_distinct_modules(self):
         config = DiscoveryConfig()
         groups = discover_targets(
             [
@@ -203,17 +205,13 @@ class TestDiscoverTargets(unittest.TestCase):
             ],
             config,
         )
-        self.assertEqual(len(groups), 2)
-        self.assertEqual(
-            groups[0][0].__name__,
-            'tests.fixtures.runner.all_pass',
-        )
-        self.assertEqual(
-            groups[1][0].__name__,
-            'tests.fixtures.runner.has_failure',
+        assert len(groups) == 2
+        assert groups[0][0].__name__ == 'tests.fixtures.runner.all_pass'
+        assert (
+            groups[1][0].__name__ == 'tests.fixtures.runner.has_failure'
         )
 
-    def test_duplicate_module_deduped(self):
+    def duplicate_module_deduped(self):
         config = DiscoveryConfig()
         groups = discover_targets(
             [
@@ -222,11 +220,11 @@ class TestDiscoverTargets(unittest.TestCase):
             ],
             config,
         )
-        self.assertEqual(len(groups), 1)
+        assert len(groups) == 1
         _, names = groups[0]
-        self.assertIsNone(names)
+        assert names is None
 
-    def test_module_then_selector_for_same_module_keeps_module(self):
+    def module_then_selector_for_same_module_keeps_module(self):
         config = DiscoveryConfig()
         groups = discover_targets(
             [
@@ -235,11 +233,11 @@ class TestDiscoverTargets(unittest.TestCase):
             ],
             config,
         )
-        self.assertEqual(len(groups), 1)
+        assert len(groups) == 1
         _, names = groups[0]
-        self.assertIsNone(names)
+        assert names is None
 
-    def test_two_selectors_same_module_merge_names(self):
+    def two_selectors_same_module_merge_names(self):
         config = DiscoveryConfig()
         groups = discover_targets(
             [
@@ -248,11 +246,11 @@ class TestDiscoverTargets(unittest.TestCase):
             ],
             config,
         )
-        self.assertEqual(len(groups), 1)
+        assert len(groups) == 1
         _, names = groups[0]
-        self.assertEqual(names, ['Simple.first', 'Simple.second'])
+        assert names == ['Simple.first', 'Simple.second']
 
-    def test_directory_argv_yields_one_entry_per_py_file(self):
+    def directory_argv_yields_one_entry_per_py_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
             (root / 'a.py').write_text(
@@ -269,11 +267,11 @@ class TestDiscoverTargets(unittest.TestCase):
             )
             config = DiscoveryConfig()
             groups = discover_targets([str(root)], config)
-        self.assertEqual(len(groups), 2)
+        assert len(groups) == 2
         for _, names in groups:
-            self.assertIsNone(names)
+            assert names is None
 
-    def test_bare_invocation_with_include_paths(self):
+    def bare_invocation_with_include_paths(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp).resolve()
             sub = root / 'sub'
@@ -300,19 +298,17 @@ class TestDiscoverTargets(unittest.TestCase):
         names_seen = sorted(
             getattr(module, '__name__', '') for module, _ in groups
         )
-        self.assertTrue(
-            any('in_sub' in n for n in names_seen),
-            msg=f'expected sub/ module; got {names_seen}',
+        assert any('in_sub' in n for n in names_seen), (
+            f'expected sub/ module; got {names_seen}'
         )
-        self.assertFalse(
-            any('in_other' in n for n in names_seen),
-            msg=f'unexpected other/ module; got {names_seen}',
+        assert not any('in_other' in n for n in names_seen), (
+            f'unexpected other/ module; got {names_seen}'
         )
 
-    def test_bare_invocation_walks_cwd_when_no_include_paths(self):
+    def bare_invocation_walks_cwd_when_no_include_paths(self):
         # discover_targets reads cwd via pathlib.Path('.').resolve()
-        # inside _bare_invocation. contextlib.chdir restores cwd
-        # even if the body raises.
+        # inside _bare_invocation. contextlib.chdir restores cwd even
+        # if the body raises.
         config = DiscoveryConfig()
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp).resolve()
@@ -324,11 +320,7 @@ class TestDiscoverTargets(unittest.TestCase):
             )
             with contextlib.chdir(root):
                 groups = discover_targets([], config)
-        self.assertEqual(len(groups), 1)
+        assert len(groups) == 1
         module, names = groups[0]
-        self.assertIsNone(names)
-        self.assertTrue(hasattr(module, 'from_cwd'))
-
-
-if __name__ == '__main__':
-    unittest.main()
+        assert names is None
+        assert hasattr(module, 'from_cwd')
