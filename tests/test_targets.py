@@ -4,7 +4,7 @@ import pathlib
 import sys
 import tempfile
 
-from testsweet import catch_exceptions, test
+from testsweet import catch_exceptions, test, test_params
 from testsweet._config import DiscoveryConfig
 from testsweet._targets import discover_targets, parse_target
 
@@ -24,64 +24,46 @@ class ParseTarget:
         assert module is expected
         assert names is None
 
-    def relative_file_path(self):
-        result = parse_target('tests/fixtures/runner/all_pass.py')
-        assert len(result) == 1
-        module, names = result[0]
-        assert names is None
-        assert hasattr(module, 'passes_one')
-        assert hasattr(module, 'passes_two')
-
-    def relative_file_path_with_dot(self):
-        result = parse_target('./tests/fixtures/runner/all_pass.py')
-        assert len(result) == 1
-        module, names = result[0]
-        assert names is None
-        assert hasattr(module, 'passes_one')
-
-    def absolute_file_path(self):
-        path = (_FIXTURES / 'all_pass.py').resolve()
-        result = parse_target(str(path))
+    @test_params(
+        [
+            ('tests/fixtures/runner/all_pass.py',),
+            ('./tests/fixtures/runner/all_pass.py',),
+            (str((_FIXTURES / 'all_pass.py').resolve()),),
+        ]
+    )
+    def file_path_loads_module(self, target):
+        result = parse_target(target)
         assert len(result) == 1
         module, names = result[0]
         assert names is None
         assert hasattr(module, 'passes_one')
 
-    def dotted_selector_one_segment(self):
-        result = parse_target(
-            'tests.fixtures.runner.all_pass.passes_one',
-        )
+    @test_params(
+        [
+            (
+                'tests.fixtures.runner.all_pass.passes_one',
+                'tests.fixtures.runner.all_pass',
+                ['passes_one'],
+            ),
+            (
+                'tests.fixtures.runner.class_simple.Simple',
+                'tests.fixtures.runner.class_simple',
+                ['Simple'],
+            ),
+            (
+                'tests.fixtures.runner.class_simple.Simple.first',
+                'tests.fixtures.runner.class_simple',
+                ['Simple.first'],
+            ),
+        ]
+    )
+    def dotted_selector(self, target, expected_module, expected_names):
+        result = parse_target(target)
         assert len(result) == 1
         module, names = result[0]
-        expected = importlib.import_module(
-            'tests.fixtures.runner.all_pass',
-        )
+        expected = importlib.import_module(expected_module)
         assert module is expected
-        assert names == ['passes_one']
-
-    def dotted_selector_class_only(self):
-        result = parse_target(
-            'tests.fixtures.runner.class_simple.Simple',
-        )
-        assert len(result) == 1
-        module, names = result[0]
-        expected = importlib.import_module(
-            'tests.fixtures.runner.class_simple',
-        )
-        assert module is expected
-        assert names == ['Simple']
-
-    def dotted_selector_class_method(self):
-        result = parse_target(
-            'tests.fixtures.runner.class_simple.Simple.first',
-        )
-        assert len(result) == 1
-        module, names = result[0]
-        expected = importlib.import_module(
-            'tests.fixtures.runner.class_simple',
-        )
-        assert module is expected
-        assert names == ['Simple.first']
+        assert names == expected_names
 
     def dotted_too_many_segments(self):
         with catch_exceptions() as excs:

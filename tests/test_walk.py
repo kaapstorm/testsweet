@@ -1,7 +1,7 @@
 import pathlib
 import tempfile
 
-from testsweet import test
+from testsweet import test, test_params
 from testsweet._config import DiscoveryConfig
 from testsweet._walk import _walk_directory
 
@@ -28,33 +28,14 @@ class WalkDirectory:
             names = [p.relative_to(root).as_posix() for p in paths]
             assert names == ['sub/inner.py', 'top.py']
 
-    def excludes_hidden_directories(self):
+    @test_params([('.hidden',), ('__pycache__',), ('node_modules',)])
+    def excludes_directory(self, dirname):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
             (root / 'visible.py').write_text('')
-            hidden = root / '.hidden'
-            hidden.mkdir()
-            (hidden / 'inside.py').write_text('')
-            paths = _walk_directory(root)
-            assert [p.name for p in paths] == ['visible.py']
-
-    def excludes_pycache(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = pathlib.Path(tmp)
-            (root / 'visible.py').write_text('')
-            cache = root / '__pycache__'
-            cache.mkdir()
-            (cache / 'inside.py').write_text('')
-            paths = _walk_directory(root)
-            assert [p.name for p in paths] == ['visible.py']
-
-    def excludes_node_modules(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = pathlib.Path(tmp)
-            (root / 'visible.py').write_text('')
-            nm = root / 'node_modules'
-            nm.mkdir()
-            (nm / 'inside.py').write_text('')
+            excluded = root / dirname
+            excluded.mkdir()
+            (excluded / 'inside.py').write_text('')
             paths = _walk_directory(root)
             assert [p.name for p in paths] == ['visible.py']
 

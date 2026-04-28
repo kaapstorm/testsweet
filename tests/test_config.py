@@ -2,7 +2,12 @@ import pathlib
 import tempfile
 import textwrap
 
-from testsweet import ConfigurationError, catch_exceptions, test
+from testsweet import (
+    ConfigurationError,
+    catch_exceptions,
+    test,
+    test_params,
+)
 from testsweet._config import DiscoveryConfig, load_config
 
 
@@ -57,48 +62,40 @@ class LoadConfig:
             config = load_config(sub)
         assert config.project_root == root.resolve()
 
-    def non_list_value_raises(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = pathlib.Path(tmp)
-            (root / 'pyproject.toml').write_text(
-                textwrap.dedent("""
+    @test_params(
+        [
+            (
+                """
                     [tool.testsweet.discovery]
                     include_paths = "tests/"
-                """).lstrip()
-            )
-            with catch_exceptions() as excs:
-                load_config(root)
-        assert len(excs) == 1
-        assert isinstance(excs[0], ConfigurationError)
-        assert 'include_paths' in str(excs[0])
-
-    def list_with_non_string_raises(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = pathlib.Path(tmp)
-            (root / 'pyproject.toml').write_text(
-                textwrap.dedent("""
+                """,
+                'include_paths',
+            ),
+            (
+                """
                     [tool.testsweet.discovery]
                     test_files = ["test_*.py", 42]
-                """).lstrip()
-            )
-            with catch_exceptions() as excs:
-                load_config(root)
-        assert len(excs) == 1
-        assert isinstance(excs[0], ConfigurationError)
-        assert 'test_files' in str(excs[0])
-
-    def unknown_key_raises(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = pathlib.Path(tmp)
-            (root / 'pyproject.toml').write_text(
-                textwrap.dedent("""
+                """,
+                'test_files',
+            ),
+            (
+                """
                     [tool.testsweet.discovery]
                     include_paths = ["tests/**"]
                     typoed_key = ["nope"]
-                """).lstrip()
+                """,
+                'typoed_key',
+            ),
+        ]
+    )
+    def invalid_pyproject_raises(self, body, expected_key):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / 'pyproject.toml').write_text(
+                textwrap.dedent(body).lstrip()
             )
             with catch_exceptions() as excs:
                 load_config(root)
         assert len(excs) == 1
         assert isinstance(excs[0], ConfigurationError)
-        assert 'typoed_key' in str(excs[0])
+        assert expected_key in str(excs[0])
