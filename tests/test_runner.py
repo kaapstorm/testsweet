@@ -1,175 +1,174 @@
 import importlib
-import unittest
 
-from testsweet import discover, run, test
+from testsweet import catch_exceptions, discover, run, test
 from testsweet._class_helpers import _public_methods
 from testsweet._markers import TEST_MARKER
 
 
-class TestRun(unittest.TestCase):
-    def test_single_passing_test(self):
-        mod = importlib.import_module('tests.fixtures.runner.all_pass')
+@test
+class Run:
+    def single_passing_test(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.all_pass',
+        )
         results = run(mod)
-        self.assertEqual(len(results), 2)
+        assert len(results) == 2
         for _, exc in results:
-            self.assertIsNone(exc)
+            assert exc is None
 
-    def test_single_failing_assert(self):
+    def single_failing_assert(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.has_failure',
         )
         results = run(mod)
-        self.assertEqual(results[0][0], 'passes')
-        self.assertIsNone(results[0][1])
-        self.assertEqual(results[1][0], 'fails')
-        self.assertIsInstance(results[1][1], AssertionError)
+        assert results[0][0] == 'passes'
+        assert results[0][1] is None
+        assert results[1][0] == 'fails'
+        assert isinstance(results[1][1], AssertionError)
 
-    def test_results_in_discover_order(self):
+    def results_in_discover_order(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.has_failure',
         )
         results = run(mod)
-        self.assertEqual(
-            [name for name, _ in results],
-            ['passes', 'fails'],
+        assert [name for name, _ in results] == ['passes', 'fails']
+
+    def empty_module_returns_empty_list(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.empty',
         )
-
-    def test_empty_module_returns_empty_list(self):
-        mod = importlib.import_module('tests.fixtures.runner.empty')
         results = run(mod)
-        self.assertEqual(results, [])
+        assert results == []
 
-    def test_non_assertion_exception_is_caught(self):
+    def non_assertion_exception_is_caught(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.non_assertion_error',
         )
         results = run(mod)
-        self.assertEqual(len(results), 1)
+        assert len(results) == 1
         name, exc = results[0]
-        self.assertEqual(name, 'raises_value_error')
-        self.assertIsInstance(exc, ValueError)
+        assert name == 'raises_value_error'
+        assert isinstance(exc, ValueError)
 
-    def test_keyboard_interrupt_propagates(self):
+    def keyboard_interrupt_propagates(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.keyboard_interrupt',
         )
-        with self.assertRaises(KeyboardInterrupt):
+        outer: list[BaseException] = []
+        try:
             run(mod)
+        except KeyboardInterrupt as exc:
+            outer.append(exc)
+        assert len(outer) == 1
 
 
-class TestRunClass(unittest.TestCase):
-    def test_class_with_passing_methods(self):
+@test
+class RunClass:
+    def class_with_passing_methods(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
         results = run(mod)
-        self.assertEqual(len(results), 2)
+        assert len(results) == 2
         names = [name for name, _ in results]
-        self.assertEqual(names, ['Simple.first', 'Simple.second'])
+        assert names == ['Simple.first', 'Simple.second']
         for _, exc in results:
-            self.assertIsNone(exc)
+            assert exc is None
 
-    def test_underscore_methods_are_skipped(self):
+    def underscore_methods_are_skipped(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_with_underscore_methods',
         )
         results = run(mod)
         names = [name for name, _ in results]
-        self.assertEqual(names, ['WithUnderscores.public'])
+        assert names == ['WithUnderscores.public']
 
-    def test_enter_and_exit_run_around_methods(self):
+    def enter_and_exit_run_around_methods(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_calls_recorded',
         )
         mod.CALLS.clear()
         run(mod)
-        self.assertEqual(
-            mod.CALLS,
-            ['enter', 'first', 'second', 'exit'],
-        )
+        assert mod.CALLS == ['enter', 'first', 'second', 'exit']
 
-    def test_failing_method_does_not_abort_class(self):
+    def failing_method_does_not_abort_class(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_method_fails',
         )
         results = run(mod)
-        self.assertEqual(len(results), 2)
+        assert len(results) == 2
         names = [name for name, _ in results]
-        self.assertEqual(
-            names,
-            ['HasFailure.passes', 'HasFailure.fails'],
-        )
-        self.assertIsNone(results[0][1])
-        self.assertIsInstance(results[1][1], AssertionError)
+        assert names == ['HasFailure.passes', 'HasFailure.fails']
+        assert results[0][1] is None
+        assert isinstance(results[1][1], AssertionError)
 
-    def test_enter_exception_propagates(self):
+    def enter_exception_propagates(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_enter_raises',
         )
-        with self.assertRaises(RuntimeError):
+        with catch_exceptions() as excs:
             run(mod)
+        assert len(excs) == 1
+        assert isinstance(excs[0], RuntimeError)
 
-    def test_exit_exception_propagates(self):
+    def exit_exception_propagates(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_exit_raises',
         )
-        with self.assertRaises(RuntimeError):
+        with catch_exceptions() as excs:
             run(mod)
+        assert len(excs) == 1
+        assert isinstance(excs[0], RuntimeError)
 
-    def test_mixed_function_and_class_in_vars_order(self):
+    def mixed_function_and_class_in_vars_order(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_mixed_with_function',
         )
         results = run(mod)
         names = [name for name, _ in results]
-        self.assertEqual(
-            names,
-            ['free_function', 'ClassUnit.method'],
-        )
+        assert names == ['free_function', 'ClassUnit.method']
 
 
-class TestRunParamsEager(unittest.TestCase):
-    def test_runs_each_tuple_in_order(self):
+@test
+class RunParamsEager:
+    def runs_each_tuple_in_order(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_simple',
         )
         results = run(mod)
         names = [name for name, _ in results]
-        self.assertEqual(names, ['adds[0]', 'adds[1]'])
+        assert names == ['adds[0]', 'adds[1]']
         for _, exc in results:
-            self.assertIsNone(exc)
+            assert exc is None
 
-    def test_failure_recorded_at_correct_index(self):
+    def failure_recorded_at_correct_index(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_with_failure',
         )
         results = run(mod)
         names = [name for name, _ in results]
-        self.assertEqual(
-            names,
-            ['adds[0]', 'adds[1]', 'adds[2]'],
-        )
-        self.assertIsNone(results[0][1])
-        self.assertIsInstance(results[1][1], AssertionError)
-        self.assertIsNone(results[2][1])
+        assert names == ['adds[0]', 'adds[1]', 'adds[2]']
+        assert results[0][1] is None
+        assert isinstance(results[1][1], AssertionError)
+        assert results[2][1] is None
 
-    def test_empty_param_list_produces_no_results(self):
+    def empty_param_list_produces_no_results(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_empty',
         )
-        self.assertEqual(run(mod), [])
+        assert run(mod) == []
 
-    def test_function_without_params_unchanged(self):
+    def function_without_params_unchanged(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_no_decoration',
         )
         results = run(mod)
         names = [name for name, _ in results]
-        self.assertEqual(names, ['plain', 'parameterized[0]'])
+        assert names == ['plain', 'parameterized[0]']
         for _, exc in results:
-            self.assertIsNone(exc)
+            assert exc is None
 
-    def test_accepts_generator(self):
+    def accepts_generator(self):
         # The generator was consumed at decoration time, so the second
         # run() call sees the same materialized tuple.
         mod = importlib.import_module(
@@ -177,57 +176,53 @@ class TestRunParamsEager(unittest.TestCase):
         )
         first = run(mod)
         second = run(mod)
-        self.assertEqual(
-            [name for name, _ in first],
-            ['adds[0]', 'adds[1]', 'adds[2]'],
-        )
-        self.assertEqual(
-            [name for name, _ in second],
-            ['adds[0]', 'adds[1]', 'adds[2]'],
-        )
+        assert [name for name, _ in first] == [
+            'adds[0]',
+            'adds[1]',
+            'adds[2]',
+        ]
+        assert [name for name, _ in second] == [
+            'adds[0]',
+            'adds[1]',
+            'adds[2]',
+        ]
 
-    def test_on_class_method(self):
+    def on_class_method(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_on_class_method',
         )
         results = run(mod)
         names = [name for name, _ in results]
-        self.assertEqual(
-            names,
-            ['Cls.method[0]', 'Cls.method[1]'],
-        )
+        assert names == ['Cls.method[0]', 'Cls.method[1]']
         for _, exc in results:
-            self.assertIsNone(exc)
+            assert exc is None
 
 
-class TestRunParamsLazy(unittest.TestCase):
-    def test_runs_each_yielded_tuple(self):
+@test
+class RunParamsLazy:
+    def runs_each_yielded_tuple(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_lazy_generator',
         )
-        # Re-import so the module-level generator is freshly created
-        # — earlier tests in this class consume it.
+        # Re-import so the module-level generator is freshly created.
         importlib.reload(mod)
         results = run(mod)
         names = [name for name, _ in results]
-        self.assertEqual(
-            names,
-            ['adds[0]', 'adds[1]', 'adds[2]'],
-        )
+        assert names == ['adds[0]', 'adds[1]', 'adds[2]']
         for _, exc in results:
-            self.assertIsNone(exc)
+            assert exc is None
 
-    def test_generator_is_consumed_after_first_run(self):
+    def generator_is_consumed_after_first_run(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_lazy_generator',
         )
         importlib.reload(mod)
         first = run(mod)
         second = run(mod)
-        self.assertEqual(len(first), 3)
-        self.assertEqual(second, [])
+        assert len(first) == 3
+        assert second == []
 
-    def test_list_is_idempotent(self):
+    def list_is_idempotent(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_lazy_list',
         )
@@ -236,56 +231,48 @@ class TestRunParamsLazy(unittest.TestCase):
         second = run(mod)
         names_first = [name for name, _ in first]
         names_second = [name for name, _ in second]
-        self.assertEqual(names_first, ['equals[0]', 'equals[1]'])
-        self.assertEqual(names_second, ['equals[0]', 'equals[1]'])
+        assert names_first == ['equals[0]', 'equals[1]']
+        assert names_second == ['equals[0]', 'equals[1]']
 
-    def test_on_class_method(self):
+    def on_class_method(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_lazy_on_class_method',
         )
         importlib.reload(mod)
         results = run(mod)
         names = [name for name, _ in results]
-        self.assertEqual(
-            names,
-            ['Cls.method[0]', 'Cls.method[1]'],
-        )
+        assert names == ['Cls.method[0]', 'Cls.method[1]']
         for _, exc in results:
-            self.assertIsNone(exc)
+            assert exc is None
 
 
-class TestRunNames(unittest.TestCase):
-    def test_filters_to_named_function(self):
+@test
+class RunNames:
+    def filters_to_named_function(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
         results = run(mod, names=['passes_one'])
-        self.assertEqual(
-            [name for name, _ in results],
-            ['passes_one'],
-        )
+        assert [name for name, _ in results] == ['passes_one']
 
-    def test_class_name_runs_all_methods(self):
+    def class_name_runs_all_methods(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
         results = run(mod, names=['Simple'])
-        self.assertEqual(
-            [name for name, _ in results],
-            ['Simple.first', 'Simple.second'],
-        )
+        assert [name for name, _ in results] == [
+            'Simple.first',
+            'Simple.second',
+        ]
 
-    def test_class_method_selector_runs_one(self):
+    def class_method_selector_runs_one(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
         results = run(mod, names=['Simple.first'])
-        self.assertEqual(
-            [name for name, _ in results],
-            ['Simple.first'],
-        )
+        assert [name for name, _ in results] == ['Simple.first']
 
-    def test_two_method_selectors_run_in_vars_order(self):
+    def two_method_selectors_run_in_vars_order(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
@@ -294,89 +281,84 @@ class TestRunNames(unittest.TestCase):
             names=['Simple.second', 'Simple.first'],
         )
         # vars() order, NOT argv order — Simple.first defined first.
-        self.assertEqual(
-            [name for name, _ in results],
-            ['Simple.first', 'Simple.second'],
-        )
+        assert [name for name, _ in results] == [
+            'Simple.first',
+            'Simple.second',
+        ]
 
-    def test_class_form_wins_over_method_form(self):
+    def class_form_wins_over_method_form(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
-        results = run(
-            mod,
-            names=['Simple', 'Simple.first'],
-        )
-        self.assertEqual(
-            [name for name, _ in results],
-            ['Simple.first', 'Simple.second'],
-        )
+        results = run(mod, names=['Simple', 'Simple.first'])
+        assert [name for name, _ in results] == [
+            'Simple.first',
+            'Simple.second',
+        ]
 
-    def test_unmatched_name_raises_lookup_error(self):
+    def unmatched_name_raises_lookup_error(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
-        with self.assertRaises(LookupError) as ctx:
+        with catch_exceptions() as excs:
             run(mod, names=['nonexistent'])
-        self.assertIn('nonexistent', str(ctx.exception))
+        assert len(excs) == 1
+        assert isinstance(excs[0], LookupError)
+        assert 'nonexistent' in str(excs[0])
 
-    def test_validation_runs_before_execution(self):
-        # If any name is unmatched, NO test runs — the matched ones
-        # are not partially executed before the error.
+    def validation_runs_before_execution(self):
+        # If any name is unmatched, NO test runs — the matched ones are
+        # not partially executed before the error.
         mod = importlib.import_module(
             'tests.fixtures.runner.class_calls_recorded',
         )
         mod.CALLS.clear()
-        with self.assertRaises(LookupError):
+        with catch_exceptions() as excs:
             run(mod, names=['Recorded.first', 'Recorded.nonexistent'])
-        self.assertEqual(mod.CALLS, [])
+        assert len(excs) == 1
+        assert isinstance(excs[0], LookupError)
+        assert mod.CALLS == []
 
-    def test_parameterized_function_selector_runs_all_params(self):
+    def parameterized_function_selector_runs_all_params(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_simple',
         )
         results = run(mod, names=['adds'])
-        self.assertEqual(
-            [name for name, _ in results],
-            ['adds[0]', 'adds[1]'],
-        )
+        assert [name for name, _ in results] == ['adds[0]', 'adds[1]']
 
-    def test_class_method_unknown_method_raises(self):
+    def class_method_unknown_method_raises(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
-        with self.assertRaises(LookupError):
+        with catch_exceptions() as excs:
             run(mod, names=['Simple.nonexistent'])
+        assert len(excs) == 1
+        assert isinstance(excs[0], LookupError)
 
 
-class TestDecoratedClass(unittest.TestCase):
-    def test_runs_decorated_class_without_context_manager(self):
+@test
+class DecoratedClass:
+    def runs_decorated_class_without_context_manager(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_decorated_simple',
         )
         results = run(mod)
         names = sorted(name for name, _ in results)
-        self.assertEqual(names, ['Simple.fails', 'Simple.passes'])
+        assert names == ['Simple.fails', 'Simple.passes']
         outcomes = {name: exc for name, exc in results}
-        self.assertIsNone(outcomes['Simple.passes'])
-        self.assertIsInstance(outcomes['Simple.fails'], AssertionError)
+        assert outcomes['Simple.passes'] is None
+        assert isinstance(outcomes['Simple.fails'], AssertionError)
 
-    def test_runs_decorated_class_with_context_manager(self):
+    def runs_decorated_class_with_context_manager(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_decorated_with_cm',
         )
         results = run(mod)
-        self.assertEqual(
-            [name for name, _ in results],
-            ['WithCM.uses_fixture'],
-        )
-        self.assertIsNone(results[0][1])
-        self.assertEqual(
-            mod.CALLS,
-            ['enter', 'test', 'exit'],
-        )
+        assert [name for name, _ in results] == ['WithCM.uses_fixture']
+        assert results[0][1] is None
+        assert mod.CALLS == ['enter', 'test', 'exit']
 
-    def test_class_with_enter_only_propagates_type_error(self):
+    def class_with_enter_only_propagates_type_error(self):
         # The runner only checks for __enter__; a class missing
         # __exit__ falls through to Python's `with` machinery, which
         # raises TypeError ("does not support the context manager
@@ -385,26 +367,29 @@ class TestDecoratedClass(unittest.TestCase):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_enter_only',
         )
-        with self.assertRaises(TypeError) as ctx:
+        with catch_exceptions() as excs:
             run(mod)
-        self.assertIn('__exit__', str(ctx.exception))
+        assert len(excs) == 1
+        assert isinstance(excs[0], TypeError)
+        assert '__exit__' in str(excs[0])
 
 
-class TestDecoratorOnClass(unittest.TestCase):
-    def test_decorator_marks_class(self):
+@test
+class DecoratorOnClass:
+    def decorator_marks_class(self):
         @test
         class Cls:
             pass
 
-        self.assertIs(getattr(Cls, TEST_MARKER), True)
+        assert getattr(Cls, TEST_MARKER) is True
 
-    def test_undecorated_class_has_no_marker(self):
+    def undecorated_class_has_no_marker(self):
         class Cls:
             pass
 
-        self.assertFalse(hasattr(Cls, TEST_MARKER))
+        assert not hasattr(Cls, TEST_MARKER)
 
-    def test_marker_propagates_to_subclass(self):
+    def marker_propagates_to_subclass(self):
         @test
         class Parent:
             pass
@@ -412,20 +397,22 @@ class TestDecoratorOnClass(unittest.TestCase):
         class Child(Parent):
             pass
 
-        self.assertIs(getattr(Child, TEST_MARKER), True)
+        assert getattr(Child, TEST_MARKER) is True
 
 
-class TestDiscoverIntegration(unittest.TestCase):
-    def test_discover_returns_decorated_class(self):
+@test
+class DiscoverIntegration:
+    def discover_returns_decorated_class(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
         result = discover(mod)
-        self.assertEqual([cls.__name__ for cls in result], ['Simple'])
+        assert [cls.__name__ for cls in result] == ['Simple']
 
 
-class TestPublicMethods(unittest.TestCase):
-    def test_returns_leaf_methods_in_definition_order(self):
+@test
+class PublicMethods:
+    def returns_leaf_methods_in_definition_order(self):
         @test
         class Cls:
             def b_method(self):
@@ -434,12 +421,9 @@ class TestPublicMethods(unittest.TestCase):
             def a_method(self):
                 pass
 
-        self.assertEqual(
-            _public_methods(Cls),
-            ['b_method', 'a_method'],
-        )
+        assert _public_methods(Cls) == ['b_method', 'a_method']
 
-    def test_excludes_underscore_prefixed_methods(self):
+    def excludes_underscore_prefixed_methods(self):
         @test
         class Cls:
             def _private(self):
@@ -451,18 +435,19 @@ class TestPublicMethods(unittest.TestCase):
             def __dunder(self):
                 pass
 
-        self.assertEqual(_public_methods(Cls), ['public'])
+        assert _public_methods(Cls) == ['public']
 
-    def test_includes_inherited_methods_with_leaf_priority(self):
+    def includes_inherited_methods_with_leaf_priority(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_with_inheritance',
         )
-        self.assertEqual(
-            _public_methods(mod.Leaf),
-            ['leaf_method', 'overridden', 'base_method'],
-        )
+        assert _public_methods(mod.Leaf) == [
+            'leaf_method',
+            'overridden',
+            'base_method',
+        ]
 
-    def test_diamond_inheritance_follows_mro(self):
+    def diamond_inheritance_follows_mro(self):
         class A:
             def from_a(self):
                 pass
@@ -482,12 +467,14 @@ class TestPublicMethods(unittest.TestCase):
             def from_leaf(self):
                 pass
 
-        self.assertEqual(
-            _public_methods(Leaf),
-            ['from_leaf', 'from_a', 'shared', 'from_b'],
-        )
+        assert _public_methods(Leaf) == [
+            'from_leaf',
+            'from_a',
+            'shared',
+            'from_b',
+        ]
 
-    def test_staticmethod_is_included(self):
+    def staticmethod_is_included(self):
         @test
         class Cls:
             @staticmethod
@@ -497,12 +484,9 @@ class TestPublicMethods(unittest.TestCase):
             def regular(self):
                 pass
 
-        self.assertEqual(
-            _public_methods(Cls),
-            ['a_static', 'regular'],
-        )
+        assert _public_methods(Cls) == ['a_static', 'regular']
 
-    def test_classmethod_is_excluded(self):
+    def classmethod_is_excluded(self):
         @test
         class Cls:
             @classmethod
@@ -512,8 +496,4 @@ class TestPublicMethods(unittest.TestCase):
             def regular(self):
                 pass
 
-        self.assertEqual(_public_methods(Cls), ['regular'])
-
-
-if __name__ == '__main__':
-    unittest.main()
+        assert _public_methods(Cls) == ['regular']
