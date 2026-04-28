@@ -4,7 +4,7 @@ import sys
 import tempfile
 import textwrap
 
-from testsweet import test
+from testsweet import test, test_params
 
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -32,11 +32,31 @@ class Cli:
                 assert True
         """
 
-    def all_pass_module_exits_zero(self):
-        result = _run_cli('tests.fixtures.runner.all_pass')
+    @test_params(
+        [
+            (
+                ('tests.fixtures.runner.all_pass',),
+                ['passes_one ... ok', 'passes_two ... ok'],
+            ),
+            (
+                ('tests.fixtures.runner.class_simple',),
+                ['Simple.first ... ok', 'Simple.second ... ok'],
+            ),
+            (
+                ('tests.fixtures.runner.params_simple',),
+                ['adds[0] ... ok', 'adds[1] ... ok'],
+            ),
+            (
+                ('tests/fixtures/runner/all_pass.py',),
+                ['passes_one ... ok', 'passes_two ... ok'],
+            ),
+        ]
+    )
+    def runs_target_with_expected_lines(self, args, expected_lines):
+        result = _run_cli(*args)
         assert result.returncode == 0
-        assert 'passes_one ... ok' in result.stdout
-        assert 'passes_two ... ok' in result.stdout
+        for line in expected_lines:
+            assert line in result.stdout
 
     def failing_module_exits_one(self):
         result = _run_cli('tests.fixtures.runner.has_failure')
@@ -45,33 +65,20 @@ class Cli:
         assert 'fails ... FAIL:' in result.stdout
         assert 'AssertionError' in result.stdout
 
-    def two_arguments_exits_two(self):
-        result = _run_cli('a', 'b')
+    @test_params(
+        [
+            (('a', 'b'), 'ModuleNotFoundError'),
+            (('not_a_real_module_xyzzy',), 'ModuleNotFoundError'),
+            (
+                ('tests.fixtures.runner.all_pass.nonexistent',),
+                'LookupError',
+            ),
+        ]
+    )
+    def invalid_target_writes_to_stderr(self, args, expected_substring):
+        result = _run_cli(*args)
         assert result.returncode != 0
-        assert 'ModuleNotFoundError' in result.stderr
-
-    def unimportable_module_propagates(self):
-        result = _run_cli('not_a_real_module_xyzzy')
-        assert result.returncode != 0
-        assert 'ModuleNotFoundError' in result.stderr
-
-    def class_method_qualname_in_output(self):
-        result = _run_cli('tests.fixtures.runner.class_simple')
-        assert result.returncode == 0
-        assert 'Simple.first ... ok' in result.stdout
-        assert 'Simple.second ... ok' in result.stdout
-
-    def parameterized_indices_in_output(self):
-        result = _run_cli('tests.fixtures.runner.params_simple')
-        assert result.returncode == 0
-        assert 'adds[0] ... ok' in result.stdout
-        assert 'adds[1] ... ok' in result.stdout
-
-    def file_path_argv(self):
-        result = _run_cli('tests/fixtures/runner/all_pass.py')
-        assert result.returncode == 0
-        assert 'passes_one ... ok' in result.stdout
-        assert 'passes_two ... ok' in result.stdout
+        assert expected_substring in result.stderr
 
     def selector_argv_runs_one_method(self):
         result = _run_cli(
@@ -99,11 +106,6 @@ class Cli:
         # Both methods, single grouped run — neither line repeats.
         assert result.stdout.count('Simple.first ... ok') == 1
         assert result.stdout.count('Simple.second ... ok') == 1
-
-    def unmatched_selector_propagates_lookup_error(self):
-        result = _run_cli('tests.fixtures.runner.all_pass.nonexistent')
-        assert result.returncode != 0
-        assert 'LookupError' in result.stderr
 
     def module_target_overrides_selector_for_same_module(self):
         result = _run_cli(
