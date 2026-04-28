@@ -12,8 +12,10 @@ Neither of the two most popular libraries for testing in Python,
 [pytest](https://docs.pytest.org/), make it over the hurdle of the Zen
 of Python.
 
-> Beautiful is better than ugly.
-> Explicit is better than implicit.
+```
+Beautiful is better than ugly.
+Explicit is better than implicit.
+```
 
 unittest is modeled closely on JUnit and the xUnit family of libraries.
 Its strength is its familiarity to people who are accustomed to them.
