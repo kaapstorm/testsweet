@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.1.3 (2026-04-29)
+------------------
+
+**Improvements**
+- Tightened typing and added py.typed marker
+
 0.1.2 (2026-04-29)
 ------------------
 
