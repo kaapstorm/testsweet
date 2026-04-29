@@ -21,7 +21,7 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/kaapstorm/testsweet"
 Source = "https://github.com/kaapstorm/testsweet"
-Issues = "https://github.com/kaapstorm/testsweet/issues"
+Documentation = "https://github.com/kaapstorm/testsweet/blob/main/README.md"
 
 [build-system]
 requires = ["hatchling"]
