@@ -71,6 +71,6 @@ python -m testsweet  # Discover tests
 Documentation
 -------------
 
-* [Getting Started](docs/getting-started.md)
-* [Reference](docs/reference.md)
-* [Contributing](docs/contributing.md)
+* [Getting Started](https://github.com/kaapstorm/testsweet/blob/main/docs/getting-started.md)
+* [Reference](https://github.com/kaapstorm/testsweet/blob/main/docs/reference.md)
+* [Contributing](https://github.com/kaapstorm/testsweet/blob/main/docs/contributing.md)
