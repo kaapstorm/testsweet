@@ -1,4 +1,5 @@
 import warnings
+from types import TracebackType
 
 
 class catch_exceptions:
@@ -8,7 +9,12 @@ class catch_exceptions:
     def __enter__(self) -> list[Exception]:
         return self._excs
 
-    def __exit__(self, exc_type, exc, tb) -> bool:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool:
         if exc is None:
             return False
         if isinstance(exc, Exception):
@@ -31,7 +37,12 @@ class catch_warnings:
         self._records = self._catcher.__enter__()
         return self._warns
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         try:
             assert self._records is not None
             for r in self._records:

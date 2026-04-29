@@ -60,6 +60,10 @@ quote-style = "single"
 python_version = "3.11"
 files = ["src", "tests"]
 mypy_path = "src"
+disallow_incomplete_defs = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
 
 [tool.testsweet.discovery]
 include_paths = ["tests"]
