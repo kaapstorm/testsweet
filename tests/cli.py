@@ -379,3 +379,47 @@ class Cli:
         assert result.returncode != 0
         assert 'ConfigurationError' in result.stderr
         assert 'typoed_key' in result.stderr
+
+    def fail_line_shows_assertion_source_when_no_message(self):
+        result = _run_cli(
+            'tests.fixtures.runner.assertion_diagnostics.compare_vars',
+        )
+        assert result.returncode == 1
+        assert (
+            'FAIL: AssertionError: assert foo == bar' in result.stdout
+        )
+
+    def fail_line_keeps_explicit_assertion_message(self):
+        result = _run_cli(
+            'tests.fixtures.runner.assertion_diagnostics.with_message',
+        )
+        assert result.returncode == 1
+        assert (
+            'FAIL: AssertionError: explicit message' in result.stdout
+        )
+        assert 'assert 1 == 2' not in result.stdout.split('\n')[0]
+
+    def traceback_block_shows_subexpression_values(self):
+        result = _run_cli(
+            'tests.fixtures.runner.assertion_diagnostics.compare_vars',
+        )
+        assert 'foo = 1' in result.stdout
+        assert 'bar = 0' in result.stdout
+
+    def traceback_block_explains_bare_name_assertion(self):
+        result = _run_cli(
+            'tests.fixtures.runner.assertion_diagnostics.bare_name',
+        )
+        assert 'flag = False' in result.stdout
+
+    def traceback_block_explains_bool_op_assertion(self):
+        result = _run_cli(
+            'tests.fixtures.runner.assertion_diagnostics.bool_op',
+        )
+        assert 'a > b = False' in result.stdout
+        assert 'b > 0 = True' in result.stdout
+
+    def non_assertion_error_has_no_explanation_block(self):
+        result = _run_cli('tests.fixtures.runner.non_assertion_error')
+        assert result.returncode == 1
+        assert result.stdout.splitlines()[-1] == 'ValueError: boom'
