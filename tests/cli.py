@@ -380,11 +380,25 @@ class Cli:
         assert 'ConfigurationError' in result.stderr
         assert 'typoed_key' in result.stderr
 
+    def installed_entry_point_runs(self):
+        # The `testsweet` console script (defined in [project.scripts])
+        # should land alongside the interpreter and forward to main().
+        script = pathlib.Path(sys.executable).with_name('testsweet')
+        if not script.exists():
+            return  # not an installed environment; skip silently
+        result = subprocess.run(
+            [str(script), '--help'],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        assert result.stdout.startswith('Usage: testsweet')
+
     @test_params([(('-h',),), (('--help',),)])
     def help_flag_prints_usage_and_exits_zero(self, args):
         result = _run_cli(*args)
         assert result.returncode == 0
-        assert result.stdout.startswith('Usage: python -m testsweet')
+        assert result.stdout.startswith('Usage: testsweet')
         assert '--help' in result.stdout
         assert result.stderr == ''
 
@@ -392,7 +406,7 @@ class Cli:
         # Even when given alongside an invalid target, --help short-circuits.
         result = _run_cli('--help', 'not_a_real_module_xyzzy')
         assert result.returncode == 0
-        assert result.stdout.startswith('Usage: python -m testsweet')
+        assert result.stdout.startswith('Usage: testsweet')
 
     def fail_line_shows_assertion_source_when_no_message(self):
         result = _run_cli(

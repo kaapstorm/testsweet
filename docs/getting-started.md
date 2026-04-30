@@ -132,12 +132,19 @@ it consumed at run time, use `@test_params_lazy` instead.
 Running tests
 -------------
 
-Testsweet ships a runner you invoke as a module:
+Testsweet installs a `testsweet` console script:
 
 ```shell
-python -m testsweet  # discover tests
-python -m testsweet tests/test_module.py  # a file
-python -m testsweet tests.test_module.TestClass.test_method  # a single test
+testsweet  # discover tests
+testsweet tests/test_module.py  # a file
+testsweet tests.test_module.TestClass.test_method  # a single test
+```
+
+The same runner is also reachable as a module (handy when the console
+script is not on PATH, e.g. when running uninstalled from a checkout):
+
+```shell
+python -m testsweet
 ```
 
 The runner prints one line per test and exits non-zero if any test

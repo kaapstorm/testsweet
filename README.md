@@ -62,10 +62,13 @@ class OrThings:
 Running tests:
 
 ```shell
-python -m testsweet tests.test_module.TestClass.test_method
-python -m testsweet tests/test_module.py
-python -m testsweet  # Discover tests
+testsweet tests.test_module.TestClass.test_method
+testsweet tests/test_module.py
+testsweet  # Discover tests
 ```
+
+`python -m testsweet ...` works equivalently and is useful when the
+console script is not on PATH.
 
 
 Documentation

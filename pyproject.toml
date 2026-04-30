@@ -18,6 +18,9 @@ classifiers = [
     "Topic :: Software Development :: Testing",
 ]
 
+[project.scripts]
+testsweet = "testsweet.__main__:cli"
+
 [project.urls]
 Homepage = "https://github.com/kaapstorm/testsweet"
 Source = "https://github.com/kaapstorm/testsweet"

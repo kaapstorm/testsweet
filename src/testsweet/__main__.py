@@ -9,7 +9,8 @@ from testsweet._targets import discover_targets
 
 
 _USAGE = """\
-Usage: python -m testsweet [-h | --help] [TARGET ...]
+Usage: testsweet [-h | --help] [TARGET ...]
+       python -m testsweet [-h | --help] [TARGET ...]
 
 Run testsweet tests. Each TARGET selects what to run:
 
@@ -66,5 +67,9 @@ def main(argv: list[str]) -> int:
         sys.path[:] = saved_sys_path
 
 
-if __name__ == '__main__':
+def cli() -> None:
     sys.exit(main(sys.argv[1:]))
+
+
+if __name__ == '__main__':
+    cli()
