@@ -2,6 +2,7 @@ import pathlib
 import sys
 import traceback
 
+from testsweet._assertion import explain_assertion
 from testsweet._config import load_config
 from testsweet._runner import run
 from testsweet._targets import discover_targets
@@ -28,6 +29,10 @@ def main(argv: list[str]) -> int:
             print('-' * 70)
             tb = exc.__traceback__.tb_next if exc.__traceback__ else None
             traceback.print_exception(type(exc), exc, tb, file=sys.stdout)
+            if isinstance(exc, AssertionError):
+                explanation = explain_assertion(exc)
+                if explanation is not None:
+                    print(explanation)
         return 1 if failures else 0
     finally:
         sys.path[:] = saved_sys_path
