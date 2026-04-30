@@ -14,10 +14,11 @@ def main(argv: list[str]) -> int:
         failed = False
         for module, names in groups:
             for name, exc in run(module, names=names):
+                full_name = f'{module.__name__}.{name}'
                 if exc is None:
-                    print(f'{name} ... ok')
+                    print(f'{full_name} ... ok')
                 else:
-                    print(f'{name} ... FAIL: {type(exc).__name__}: {exc}')
+                    print(f'{full_name} ... FAIL: {type(exc).__name__}: {exc}')
                     failed = True
         return 1 if failed else 0
     finally:
