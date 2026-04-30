@@ -1,5 +1,6 @@
 import pathlib
 import sys
+import traceback
 
 from testsweet._config import load_config
 from testsweet._runner import run
@@ -11,7 +12,7 @@ def main(argv: list[str]) -> int:
     try:
         config = load_config(pathlib.Path.cwd())
         groups = discover_targets(argv, config)
-        failed = False
+        failures: list[tuple[str, Exception]] = []
         for module, names in groups:
             for name, exc in run(module, names=names):
                 full_name = f'{module.__name__}.{name}'
@@ -19,8 +20,15 @@ def main(argv: list[str]) -> int:
                     print(f'{full_name} ... ok')
                 else:
                     print(f'{full_name} ... FAIL: {type(exc).__name__}: {exc}')
-                    failed = True
-        return 1 if failed else 0
+                    failures.append((full_name, exc))
+        for full_name, exc in failures:
+            print()
+            print('=' * 70)
+            print(f'FAIL: {full_name}')
+            print('-' * 70)
+            tb = exc.__traceback__.tb_next if exc.__traceback__ else None
+            traceback.print_exception(type(exc), exc, tb, file=sys.stdout)
+        return 1 if failures else 0
     finally:
         sys.path[:] = saved_sys_path
 
