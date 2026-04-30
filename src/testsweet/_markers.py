@@ -9,7 +9,9 @@ def test(target):
     its public methods are run as tests; if the class implements the
     context-manager protocol (`__enter__`/`__exit__`, typically by
     inheriting `contextlib.AbstractContextManager`), the runner enters
-    it for the duration of its method invocations.
+    it for the duration of its method calls, so `__enter__` and
+    `__exit__` are equivalent to `setUpClass` and `tearDownClass` in
+    unittest.
     """
     setattr(target, TEST_MARKER, True)
     return target

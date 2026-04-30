@@ -84,7 +84,8 @@ def uses_database():
 
 For class-style tests, implement the context-manager protocol on the
 class. The runner enters the class for the duration of its method
-invocations:
+calls, so `__enter__()` and `__exit__()` methods are equivalent to
+`setUpClass()` and `tearDownClass()` in unittest:
 
 ```python
 from contextlib import AbstractContextManager
