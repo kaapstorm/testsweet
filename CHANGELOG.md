@@ -1,6 +1,18 @@
 Changelog
 =========
 
+0.1.4 (2026-04-30)
+------------------
+
+**Improvements**
+- Improved output.
+- Added `--help` command line option.
+- Can be invoked using `testsweet`
+
+**Documentation**
+- Clarified that class context managers are treated like
+  `setUpClass()`/`tearDownClass()`.
+
 0.1.3 (2026-04-29)
 ------------------
 
