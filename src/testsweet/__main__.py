@@ -8,7 +8,30 @@ from testsweet._runner import run
 from testsweet._targets import discover_targets
 
 
+_USAGE = """\
+Usage: python -m testsweet [-h | --help] [TARGET ...]
+
+Run testsweet tests. Each TARGET selects what to run:
+
+  <module>            Dotted module path (e.g. tests.foo)
+  <module>.<unit>     A specific function or class within a module
+  <module>.<Class>.<method>
+                      A specific method of a test class
+  <path/to/file.py>   A single Python file
+  <path/to/dir>       A directory (walked recursively)
+
+With no TARGET, testsweet walks the current working directory using any
+[tool.testsweet.discovery] configuration in pyproject.toml.
+
+Options:
+  -h, --help          Show this help message and exit.
+"""
+
+
 def main(argv: list[str]) -> int:
+    if any(arg in ('-h', '--help') for arg in argv):
+        print(_USAGE, end='')
+        return 0
     saved_sys_path = list(sys.path)
     try:
         config = load_config(pathlib.Path.cwd())
