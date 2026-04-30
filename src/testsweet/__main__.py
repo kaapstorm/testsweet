@@ -2,7 +2,7 @@ import pathlib
 import sys
 import traceback
 
-from testsweet._assertion import explain_assertion
+from testsweet._assertion import assertion_source, explain_assertion
 from testsweet._config import load_config
 from testsweet._runner import run
 from testsweet._targets import discover_targets
@@ -20,7 +20,12 @@ def main(argv: list[str]) -> int:
                 if exc is None:
                     print(f'{full_name} ... ok')
                 else:
-                    print(f'{full_name} ... FAIL: {type(exc).__name__}: {exc}')
+                    detail = str(exc)
+                    if not detail and isinstance(exc, AssertionError):
+                        detail = assertion_source(exc) or ''
+                    print(
+                        f'{full_name} ... FAIL: {type(exc).__name__}: {detail}'
+                    )
                     failures.append((full_name, exc))
         for full_name, exc in failures:
             print()

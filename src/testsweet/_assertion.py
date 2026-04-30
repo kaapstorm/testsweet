@@ -2,23 +2,19 @@ import ast
 from types import TracebackType
 
 
+def assertion_source(exc: AssertionError) -> str | None:
+    located = _locate_assert(exc)
+    if located is None:
+        return None
+    _, _, assert_node = located
+    return ast.unparse(assert_node)
+
+
 def explain_assertion(exc: AssertionError) -> str | None:
-    tb = _innermost_tb(exc.__traceback__)
-    if tb is None:
+    located = _locate_assert(exc)
+    if located is None:
         return None
-    frame = tb.tb_frame
-    filename = frame.f_code.co_filename
-    lineno = tb.tb_lineno
-
-    try:
-        with open(filename) as fh:
-            tree = ast.parse(fh.read(), filename=filename)
-    except (OSError, SyntaxError, ValueError):
-        return None
-
-    assert_node = _find_assert(tree, lineno)
-    if assert_node is None:
-        return None
+    frame, filename, assert_node = located
 
     lines = []
     seen: set[str] = set()
@@ -40,6 +36,26 @@ def explain_assertion(exc: AssertionError) -> str | None:
         lines.append(f'  {src} = {value!r}')
 
     return '\n'.join(lines) if lines else None
+
+
+def _locate_assert(
+    exc: AssertionError,
+) -> tuple[object, str, ast.Assert] | None:
+    tb = _innermost_tb(exc.__traceback__)
+    if tb is None:
+        return None
+    frame = tb.tb_frame
+    filename = frame.f_code.co_filename
+    lineno = tb.tb_lineno
+    try:
+        with open(filename) as fh:
+            tree = ast.parse(fh.read(), filename=filename)
+    except (OSError, SyntaxError, ValueError):
+        return None
+    node = _find_assert(tree, lineno)
+    if node is None:
+        return None
+    return frame, filename, node
 
 
 def _innermost_tb(tb: TracebackType | None) -> TracebackType | None:
