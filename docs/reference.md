@@ -126,8 +126,8 @@ Configuration keys
 
 All keys live under `[tool.testsweet.discovery]` in `pyproject.toml`.
 
-| Key             | Type           | Description                                     |
-|-----------------|----------------|-------------------------------------------------|
-| `include_paths` | list of string | Paths to search for tests.                      |
-| `exclude_paths` | list of string | Paths to skip during discovery.                 |
-| `test_files`    | list of string | Glob patterns identifying test modules.         |
+| Key             | Type           | Description                             |
+|-----------------|----------------|-----------------------------------------|
+| `include_paths` | list of string | Paths to search for tests.              |
+| `exclude_paths` | list of string | Paths to skip during discovery.         |
+| `test_files`    | list of string | Glob patterns identifying test modules. |
