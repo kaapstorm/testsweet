@@ -1,9 +1,4 @@
-<img
-  src="https://raw.githubusercontent.com/kaapstorm/testsweet/refs/heads/main/docs/img/testsweet_200x200.png"
-  width="120"
-  align="right"
-  alt="Testsweet logo"
->
+<img src="https://raw.githubusercontent.com/kaapstorm/testsweet/refs/heads/main/docs/img/testsweet_200x200.png" width="120" align="right" alt="Testsweet logo">
 
 Testsweet
 =========
