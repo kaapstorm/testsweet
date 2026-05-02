@@ -4,6 +4,7 @@ import traceback
 
 from testsweet._assertion import assertion_source, explain_assertion
 from testsweet._config import load_config
+from testsweet._plugins import load_plugins, session as plugin_session
 from testsweet._runner import run
 from testsweet._targets import discover_targets
 
@@ -36,21 +37,23 @@ def main(argv: list[str]) -> int:
     saved_sys_path = list(sys.path)
     try:
         config = load_config(pathlib.Path.cwd())
-        groups = discover_targets(argv, config)
+        plugins = load_plugins()
         failures: list[tuple[str, Exception]] = []
-        for module, names in groups:
-            for name, exc in run(module, names=names):
-                full_name = f'{module.__name__}.{name}'
-                if exc is None:
-                    print(f'{full_name} ... ok')
-                else:
-                    detail = str(exc)
-                    if not detail and isinstance(exc, AssertionError):
-                        detail = assertion_source(exc) or ''
-                    print(
-                        f'{full_name} ... FAIL: {type(exc).__name__}: {detail}'
-                    )
-                    failures.append((full_name, exc))
+        with plugin_session(plugins):
+            groups = discover_targets(argv, config)
+            for module, names in groups:
+                for name, exc in run(module, names=names, plugins=plugins):
+                    full_name = f'{module.__name__}.{name}'
+                    if exc is None:
+                        print(f'{full_name} ... ok')
+                    else:
+                        detail = str(exc)
+                        if not detail and isinstance(exc, AssertionError):
+                            detail = assertion_source(exc) or ''
+                        print(
+                            f'{full_name} ... FAIL: {type(exc).__name__}: {detail}'
+                        )
+                        failures.append((full_name, exc))
         for full_name, exc in failures:
             print()
             print('=' * 70)
