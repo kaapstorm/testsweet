@@ -1,3 +1,4 @@
+"""Read ``[tool.testsweet.discovery]`` from ``pyproject.toml``."""
 import pathlib
 import tomllib
 from dataclasses import dataclass, field
@@ -67,13 +68,9 @@ def _build_config(
 
 
 def _to_string_tuple(value: object, key: str) -> tuple[str, ...]:
+    err = f'tool.testsweet.discovery.{key} must be a list of strings'
     if not isinstance(value, list):
-        raise ConfigurationError(
-            f'tool.testsweet.discovery.{key} must be a list of strings'
-        )
-    for item in value:
-        if not isinstance(item, str):
-            raise ConfigurationError(
-                f'tool.testsweet.discovery.{key} must be a list of strings'
-            )
+        raise ConfigurationError(err)
+    if not all(isinstance(item, str) for item in value):
+        raise ConfigurationError(err)
     return tuple(value)

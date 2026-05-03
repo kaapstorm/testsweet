@@ -1,3 +1,4 @@
+"""Resolve dotted target strings to (module, names) pairs."""
 import importlib
 from types import ModuleType
 
@@ -32,8 +33,11 @@ def _resolve_dotted(
             )
         return module, ['.'.join(tail_parts)]
 
-    # No prefix imported. Re-raise the natural error.
-    assert first_error is not None
+    # No prefix imported. Re-raise the natural error. The loop runs
+    # at least once (len(parts) >= 1), so first_error is set unless
+    # an early return fired.
+    if first_error is None:
+        raise LookupError(f'cannot resolve {target!r}')
     raise first_error
 
 

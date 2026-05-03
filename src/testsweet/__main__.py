@@ -4,6 +4,7 @@ import traceback
 
 from testsweet._assertion import assertion_source, explain_assertion
 from testsweet._config import load_config
+from testsweet._loaders import scoped_sys_path
 from testsweet._plugins import load_plugins, session_for, unit_wrapper
 from testsweet._runner import run
 from testsweet._targets import discover_targets
@@ -34,8 +35,7 @@ def main(argv: list[str]) -> int:
     if any(arg in ('-h', '--help') for arg in argv):
         print(_USAGE, end='')
         return 0
-    saved_sys_path = list(sys.path)
-    try:
+    with scoped_sys_path():
         config = load_config(pathlib.Path.cwd())
         plugins = load_plugins()
         wrap_unit = unit_wrapper(plugins)
@@ -69,8 +69,6 @@ def main(argv: list[str]) -> int:
                 if explanation is not None:
                     print(explanation)
         return 1 if failures else 0
-    finally:
-        sys.path[:] = saved_sys_path
 
 
 def cli() -> None:

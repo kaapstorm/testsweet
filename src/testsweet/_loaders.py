@@ -1,8 +1,33 @@
+"""Load Python modules from filesystem paths or dotted names.
+
+``_load_path_for_walk`` mutates ``sys.path`` so that ``import``
+machinery can find package-relative modules during discovery. Callers
+should wrap discovery in :func:`scoped_sys_path` so the additions are
+restored on exit.
+"""
 import importlib
 import importlib.util
 import pathlib
 import sys
+from contextlib import contextmanager
 from types import ModuleType
+from typing import Iterator
+
+
+@contextmanager
+def scoped_sys_path() -> Iterator[None]:
+    """Snapshot ``sys.path`` on entry and restore it on exit.
+
+    The discovery loaders insert package roots into ``sys.path`` so
+    that dotted-name imports work for tests reached by walking the
+    filesystem. Wrap discovery in this context manager to keep those
+    additions out of the rest of the process.
+    """
+    saved = list(sys.path)
+    try:
+        yield
+    finally:
+        sys.path[:] = saved
 
 
 def _exec_module_from_path(path: pathlib.Path) -> ModuleType:

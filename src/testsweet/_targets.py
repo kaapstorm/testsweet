@@ -1,3 +1,9 @@
+"""Parse CLI/argv targets into (module, names) groups.
+
+Each argv item may be a dotted import path (``pkg.mod`` or
+``pkg.mod.name``), a path to a ``.py`` file, or a directory. Groups
+are merged by module identity so the same module isn't run twice.
+"""
 import pathlib
 from types import ModuleType
 
@@ -56,11 +62,7 @@ def parse_target(
     config: DiscoveryConfig | None = None,
     excluded: set[pathlib.Path] | None = None,
 ) -> list[TargetGroup]:
-    if (
-        '/' in target
-        or target.endswith('.py')
-        or pathlib.Path(target).is_dir()
-    ):
+    if _looks_like_filesystem_path(target):
         path = pathlib.Path(target).resolve()
         if path.is_dir():
             return [
@@ -73,6 +75,17 @@ def parse_target(
             ]
         return [(_load_path(target), None)]
     return [_resolve_dotted(target)]
+
+
+def _looks_like_filesystem_path(target: str) -> bool:
+    # Heuristic: a slash or ``.py`` suffix unambiguously means a path;
+    # otherwise check whether the literal exists on disk as a directory.
+    # Dotted import paths fall through.
+    return (
+        '/' in target
+        or target.endswith('.py')
+        or pathlib.Path(target).is_dir()
+    )
 
 
 def _bare_invocation(

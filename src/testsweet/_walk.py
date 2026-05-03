@@ -1,3 +1,10 @@
+"""Walk a directory tree to collect candidate test files.
+
+Honors ``include_paths``, ``exclude_paths``, and ``test_files`` from
+``[tool.testsweet.discovery]`` in ``pyproject.toml``. Symlinks are
+deliberately not followed, and glob matches that resolve outside
+``project_root`` are dropped.
+"""
 import fnmatch
 import os
 import pathlib
@@ -8,15 +15,25 @@ from testsweet._config import DiscoveryConfig
 _EXCLUDED_DIR_NAMES = frozenset({'__pycache__', 'node_modules'})
 
 
+def _is_under(path: pathlib.Path, root: pathlib.Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return False
+    return True
+
+
 def _resolve_include_paths(
     config: DiscoveryConfig,
 ) -> list[pathlib.Path]:
     if not config.include_paths or config.project_root is None:
         return []
+    root = config.project_root
     out: list[pathlib.Path] = []
     for pattern in config.include_paths:
-        for match in config.project_root.glob(pattern):
-            out.append(match)
+        for match in root.glob(pattern):
+            if _is_under(match, root):
+                out.append(match)
     return out
 
 
@@ -29,10 +46,12 @@ def _build_exclude_set(
     # subtree without us having to walk into it here.
     if not config.exclude_paths or config.project_root is None:
         return set()
+    root = config.project_root
     excluded: set[pathlib.Path] = set()
     for pattern in config.exclude_paths:
-        for match in config.project_root.glob(pattern):
-            excluded.add(match.resolve())
+        for match in root.glob(pattern):
+            if _is_under(match, root):
+                excluded.add(match.resolve())
     return excluded
 
 

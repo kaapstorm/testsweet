@@ -1,3 +1,10 @@
+"""Expand discovered units into per-test callables.
+
+Functions yield (name, callable) directly. Classes are entered as
+context managers (their ``__enter__/__exit__`` brackets the iteration
+of their methods); each public method is yielded as its own unit, and
+``__test_context__`` — if defined — wraps every method call.
+"""
 import functools
 import itertools
 from contextlib import nullcontext
@@ -87,8 +94,13 @@ def _build_plan(
     units: list[Any],
     names: list[str],
 ) -> dict[str, set[str] | None]:
-    # plan[unit_qualname] = None  -> run as today (whole unit)
-    #                    = set    -> run only these method names
+    """Map unit qualnames to method-name filters.
+
+    The value is ``None`` when the user asked to run the whole unit,
+    or a ``set`` of method names when only specific methods were
+    selected. Class-form selectors (``Foo``) win over method-form
+    selectors (``Foo.bar``) for the same class.
+    """
     plan: dict[str, set[str] | None] = {}
     discovered_unit_names = {u.__qualname__: u for u in units}
     unmatched: list[str] = []
