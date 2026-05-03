@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.1.5 (2026-05-03)
+------------------
+
+**Improvements**
+- Added convenience context manager method `__test_context__` for set-up and
+  tear-down to be applied to all test methods.
+- Added the ability to run plugins. (The first plugin, testsweet-django, will
+  be available soon.)
+
 0.1.4 (2026-04-30)
 ------------------
 
