@@ -1,4 +1,4 @@
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, contextmanager
 
 from testsweet import test
 
@@ -23,15 +23,37 @@ class OrThings:
 @test
 class UsesDatabase(AbstractContextManager):
     def __init__(self):
-        self.db = {}
+        self.db = None
 
     def __enter__(self):
-        self.db = {'foo': 1}
+        self.db = {}
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        self.db.clear()
+        self.db = None
         return None
 
+    @contextmanager
+    def __test_context__(self):
+        # Context applied to all test methods
+        self.db['foo'] = 1
+        try:
+            yield
+        finally:
+            del self.db['foo']
+
+    @contextmanager
+    def _bar_fixture(self):
+        # Context available to any test methods
+        self.db['bar'] = 2
+        try:
+            yield
+        finally:
+            del self.db['bar']
+
     def has_foo(self):
+        # Uses both fixtures
         assert 'foo' in self.db
+        with self._bar_fixture():
+            assert 'bar' in self.db
+        assert 'bar' not in self.db

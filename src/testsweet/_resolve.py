@@ -45,6 +45,7 @@ def _expand_unit(
             else nullcontext(instance)
         )
         with cm:
+            test_context = getattr(instance, '__test_context__', None)
             for method_name in _public_methods(unit):
                 if (
                     method_filter is not None
@@ -52,9 +53,22 @@ def _expand_unit(
                 ):
                     continue
                 bound = getattr(instance, method_name)
+                if test_context is not None:
+                    bound = _wrap_in_cm(bound, test_context)
                 yield from _expand_callable(bound, bound.__qualname__)
     else:
         yield from _expand_callable(unit, unit.__qualname__)
+
+
+def _wrap_in_cm(
+    call: Callable[..., Any],
+    cm_factory: Callable[[], Any],
+) -> Callable[..., Any]:
+    @functools.wraps(call)
+    def wrapped(*args: Any, **kwargs: Any) -> Any:
+        with cm_factory():
+            return call(*args, **kwargs)
+    return wrapped
 
 
 def _expand_callable(
