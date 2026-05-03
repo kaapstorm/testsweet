@@ -527,18 +527,83 @@ class RunWithPlugins:
             'enter:passes_two', 'exit:passes_two',
         ]
 
-    def plugin_without_unit_is_ignored(self):
-        plugin = SimpleNamespace()
-        mod = importlib.import_module(
-            'tests.fixtures.runner.all_pass',
-        )
-        results = run(mod, plugins=[plugin])
-        for _, exc in results:
-            assert exc is None
-
     def no_plugins_argument_works(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
         results = run(mod)
         assert len(results) == 2
+
+    def unit_enter_failure_attributed_to_test(self):
+        @contextmanager
+        def unit_cm(name):
+            raise RuntimeError(f'enter:{name}')
+            yield  # pragma: no cover
+
+        plugin = SimpleNamespace(unit=unit_cm)
+        mod = importlib.import_module(
+            'tests.fixtures.runner.all_pass',
+        )
+        results = run(mod, plugins=[plugin])
+        for _, exc in results:
+            assert isinstance(exc, RuntimeError)
+
+    def unit_exit_failure_attributed_to_test(self):
+        @contextmanager
+        def unit_cm(name):
+            try:
+                yield
+            finally:
+                raise RuntimeError(f'exit:{name}')
+
+        plugin = SimpleNamespace(unit=unit_cm)
+        mod = importlib.import_module(
+            'tests.fixtures.runner.all_pass',
+        )
+        results = run(mod, plugins=[plugin])
+        for _, exc in results:
+            assert isinstance(exc, RuntimeError)
+
+
+@test
+class RunWithTestContext:
+    def params_combine_with_test_context(self):
+        # Each parametrized index is wrapped in __test_context__
+        # independently — the per-method fixture brackets every call.
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_test_context_with_params',
+        )
+        mod.CALLS.clear()
+        results = run(mod)
+        names = [name for name, _ in results]
+        assert names == ['Cls.method[0]', 'Cls.method[1]']
+        for _, exc in results:
+            assert exc is None
+        assert mod.CALLS == [
+            'enter',
+            'ctx-enter', 'method(1,2)', 'ctx-exit',
+            'ctx-enter', 'method(3,4)', 'ctx-exit',
+            'exit',
+        ]
+
+    def test_context_enter_failure_attributed_to_test(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_test_context_raises',
+        )
+        results = run(mod, names=['TestContextEnterRaises'])
+        assert [name for name, _ in results] == [
+            'TestContextEnterRaises.passes',
+        ]
+        assert isinstance(results[0][1], RuntimeError)
+        assert 'enter failed' in str(results[0][1])
+
+    def test_context_exit_failure_attributed_to_test(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_test_context_raises',
+        )
+        results = run(mod, names=['TestContextExitRaises'])
+        assert [name for name, _ in results] == [
+            'TestContextExitRaises.passes',
+        ]
+        assert isinstance(results[0][1], RuntimeError)
+        assert 'exit failed' in str(results[0][1])

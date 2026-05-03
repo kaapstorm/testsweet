@@ -120,18 +120,35 @@ Plugins
 -------
 
 Plugins are discovered via the `testsweet.plugins` entry-point group.
-A plugin is any module-like object exposing one or both of:
+A plugin is any module-like object exposing both of:
 
 * `session()` — a context manager wrapping the entire test run.
 * `unit(name)` — a context manager wrapping each test call.
 
-Both are optional. Plugins are ordinary Python distributions; they
-register themselves in their own `pyproject.toml`:
+Both are required. A plugin missing either hook is rejected at load
+time with a `ConfigurationError`. If a plugin doesn't need one,
+define a no-op:
+
+```python
+from contextlib import contextmanager
+
+
+@contextmanager
+def unit(name):
+    yield
+```
+
+Plugins are ordinary Python distributions; they register themselves
+in their own `pyproject.toml`:
 
 ```toml
 [project.entry-points."testsweet.plugins"]
 django = "testsweet_django"
 ```
+
+Plugins are entered in entry-point iteration order. Each plugin's
+`session()` and `unit()` is a context manager; exceptions propagate
+normally and `__exit__` is not expected to suppress.
 
 
 Errors

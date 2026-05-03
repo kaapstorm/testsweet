@@ -142,15 +142,32 @@ Plugins
 -------
 
 Testsweet discovers plugins via the `testsweet.plugins` entry-point
-group. A plugin is any module exposing one or both of:
+group. A plugin is any module exposing both of:
 
 * `session()` — a context manager that wraps the entire test run.
   Use for one-time setup/teardown (e.g. provisioning a test database).
 * `unit(name)` — a context manager that wraps each test call. Use for
   per-test isolation.
 
-Both hooks are optional. Plugins are installed as ordinary Python
-distributions and register themselves in their own `pyproject.toml`:
+Both are required. If a plugin doesn't need one, define a no-op:
+
+```python
+from contextlib import contextmanager
+
+
+@contextmanager
+def session():
+    # ... real setup/teardown ...
+    yield
+
+
+@contextmanager
+def unit(name):
+    yield
+```
+
+Plugins are installed as ordinary Python distributions and register
+themselves in their own `pyproject.toml`:
 
 ```toml
 [project.entry-points."testsweet.plugins"]
@@ -158,7 +175,7 @@ django = "testsweet_django"
 ```
 
 See [testsweet-django](https://github.com/kaapstrom/testsweet-django)
-for an example.
+for a working example.
 
 
 Parametrized tests

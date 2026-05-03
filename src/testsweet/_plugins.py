@@ -1,15 +1,20 @@
 """Plugin protocol and loader.
 
 Plugins are discovered via the ``testsweet.plugins`` entry-point group. A
-plugin is any module-like object that may expose either of two callables:
+plugin is any module-like object that exposes both of:
 
 * ``session()`` returns a context manager that wraps the entire test run.
   Use for one-time setup/teardown such as creating a test database.
 * ``unit(name)`` returns a context manager that wraps a single test unit
   call. Use for per-test isolation such as transaction rollback.
 
-Both are optional. A plugin missing either hook is simply skipped for
-that phase.
+Both are required. If a plugin doesn't need one, define a no-op:
+
+    from contextlib import contextmanager
+
+    @contextmanager
+    def unit(name):
+        yield
 
 Example registration in a plugin package's ``pyproject.toml``::
 
@@ -18,36 +23,48 @@ Example registration in a plugin package's ``pyproject.toml``::
 """
 from contextlib import AbstractContextManager, ExitStack, contextmanager
 from importlib.metadata import entry_points
-from typing import Iterator, Protocol, runtime_checkable
+from typing import Any, Iterator, Protocol, runtime_checkable
+
+from testsweet._config import ConfigurationError
 
 ENTRY_POINT_GROUP = 'testsweet.plugins'
 
 
 @runtime_checkable
 class Plugin(Protocol):
-    def session(self) -> AbstractContextManager[None]: ...
-    def unit(self, name: str) -> AbstractContextManager[None]: ...
+    def session(self) -> AbstractContextManager[Any]: ...
+    def unit(self, name: str) -> AbstractContextManager[Any]: ...
 
 
-def load_plugins() -> list[object]:
-    return [ep.load() for ep in entry_points(group=ENTRY_POINT_GROUP)]
+def load_plugins() -> list[Plugin]:
+    plugins: list[Plugin] = []
+    for ep in entry_points(group=ENTRY_POINT_GROUP):
+        try:
+            plugin = ep.load()
+        except Exception as exc:
+            raise ConfigurationError(
+                f'Failed to load plugin {ep.name!r} from {ep.value!r}: {exc}'
+            ) from exc
+        if not isinstance(plugin, Plugin):
+            raise ConfigurationError(
+                f'Plugin {ep.name!r} loaded from {ep.value!r} does not '
+                f'expose both session() and unit(name); both are required.'
+            )
+        plugins.append(plugin)
+    return plugins
 
 
 @contextmanager
-def session(plugins: list[object]) -> Iterator[None]:
+def session(plugins: list[Plugin]) -> Iterator[None]:
     with ExitStack() as stack:
         for plugin in plugins:
-            hook = getattr(plugin, 'session', None)
-            if hook is not None:
-                stack.enter_context(hook())
+            stack.enter_context(plugin.session())
         yield
 
 
 @contextmanager
-def unit(plugins: list[object], name: str) -> Iterator[None]:
+def unit(plugins: list[Plugin], name: str) -> Iterator[None]:
     with ExitStack() as stack:
         for plugin in plugins:
-            hook = getattr(plugin, 'unit', None)
-            if hook is not None:
-                stack.enter_context(hook(name))
+            stack.enter_context(plugin.unit(name))
         yield
