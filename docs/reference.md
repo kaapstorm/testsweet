@@ -103,17 +103,17 @@ Return the list of callables in `module` that are marked as tests.
 Useful when embedding Testsweet in a custom runner.
 
 
-### `run(module, names=None, plugins=None)`
+### `run(module, names=None, wrap_unit=None)`
 
 ```python
 from testsweet import run
 ```
 
 Run the tests in `module`. If `names` is given, only run tests
-whose qualified names appear in the list. If `plugins` is given,
-each test call is wrapped in `plugin.unit(name)` for any plugin
-that defines a `unit` hook. Returns a list of
-`(name, exception_or_none)` tuples — `None` indicates success.
+whose qualified names appear in the list. If `wrap_unit` is given,
+each test call is wrapped in `wrap_unit(name)`, which must return a
+context manager. Returns a list of `(name, exception_or_none)`
+tuples — `None` indicates success.
 
 
 Plugins

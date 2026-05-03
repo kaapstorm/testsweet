@@ -4,7 +4,7 @@ import traceback
 
 from testsweet._assertion import assertion_source, explain_assertion
 from testsweet._config import load_config
-from testsweet._plugins import load_plugins, session as plugin_session
+from testsweet._plugins import load_plugins, session_for, unit_wrapper
 from testsweet._runner import run
 from testsweet._targets import discover_targets
 
@@ -38,11 +38,14 @@ def main(argv: list[str]) -> int:
     try:
         config = load_config(pathlib.Path.cwd())
         plugins = load_plugins()
+        wrap_unit = unit_wrapper(plugins)
         failures: list[tuple[str, Exception]] = []
-        with plugin_session(plugins):
+        with session_for(plugins):
             groups = discover_targets(argv, config)
             for module, names in groups:
-                for name, exc in run(module, names=names, plugins=plugins):
+                for name, exc in run(
+                    module, names=names, wrap_unit=wrap_unit,
+                ):
                     full_name = f'{module.__name__}.{name}'
                     if exc is None:
                         print(f'{full_name} ... ok')

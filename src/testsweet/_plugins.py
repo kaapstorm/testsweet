@@ -23,7 +23,7 @@ Example registration in a plugin package's ``pyproject.toml``::
 """
 from contextlib import AbstractContextManager, ExitStack, contextmanager
 from importlib.metadata import entry_points
-from typing import Any, Iterator, Protocol, runtime_checkable
+from typing import Any, Callable, Iterator, Protocol, runtime_checkable
 
 from testsweet._config import ConfigurationError
 
@@ -55,16 +55,27 @@ def load_plugins() -> list[Plugin]:
 
 
 @contextmanager
-def session(plugins: list[Plugin]) -> Iterator[None]:
+def session_for(plugins: list[Plugin]) -> Iterator[None]:
+    """Composite context manager entering each plugin's session in order."""
     with ExitStack() as stack:
         for plugin in plugins:
             stack.enter_context(plugin.session())
         yield
 
 
-@contextmanager
-def unit(plugins: list[Plugin], name: str) -> Iterator[None]:
-    with ExitStack() as stack:
-        for plugin in plugins:
-            stack.enter_context(plugin.unit(name))
-        yield
+def unit_wrapper(
+    plugins: list[Plugin],
+) -> Callable[[str], AbstractContextManager[None]]:
+    """Build a callable that wraps each test in all plugins' unit hooks.
+
+    The returned callable is suitable for ``run(..., wrap_unit=...)``.
+    """
+
+    @contextmanager
+    def wrap_unit(name: str) -> Iterator[None]:
+        with ExitStack() as stack:
+            for plugin in plugins:
+                stack.enter_context(plugin.unit(name))
+            yield
+
+    return wrap_unit

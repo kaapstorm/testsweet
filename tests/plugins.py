@@ -2,7 +2,12 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 
 from testsweet import ConfigurationError, catch_exceptions, test
-from testsweet._plugins import Plugin, load_plugins, session, unit
+from testsweet._plugins import (
+    Plugin,
+    load_plugins,
+    session_for,
+    unit_wrapper,
+)
 
 
 def _make_plugin(
@@ -33,15 +38,15 @@ def _make_plugin(
 
 
 @test
-class PluginSession:
+class SessionFor:
     def empty_plugins_is_noop(self):
-        with session([]):
+        with session_for([]):
             pass
 
     def session_hook_runs(self):
         events: list[str] = []
         plugin = _make_plugin(on_session=events.append)
-        with session([plugin]):
+        with session_for([plugin]):
             events.append('inside')
         assert events == ['enter', 'inside', 'exit']
 
@@ -53,7 +58,7 @@ class PluginSession:
         plugin_b = _make_plugin(
             on_session=lambda phase: events.append(f'b-{phase}'),
         )
-        with session([plugin_a, plugin_b]):
+        with session_for([plugin_a, plugin_b]):
             events.append('inside')
         assert events == [
             'a-enter', 'b-enter', 'inside', 'b-exit', 'a-exit',
@@ -61,9 +66,10 @@ class PluginSession:
 
 
 @test
-class PluginUnit:
-    def empty_plugins_is_noop(self):
-        with unit([], 'some.test'):
+class UnitWrapper:
+    def empty_plugins_yields_noop(self):
+        wrap = unit_wrapper([])
+        with wrap('some.test'):
             pass
 
     def unit_hook_receives_test_name(self):
@@ -71,11 +77,27 @@ class PluginUnit:
         plugin = _make_plugin(
             on_unit=lambda name, phase: seen.append((name, phase)),
         )
-        with unit([plugin], 'mod.test_thing'):
+        wrap = unit_wrapper([plugin])
+        with wrap('mod.test_thing'):
             pass
         assert seen == [
             ('mod.test_thing', 'enter'),
             ('mod.test_thing', 'exit'),
+        ]
+
+    def wrapper_is_reusable_across_tests(self):
+        seen: list[str] = []
+        plugin = _make_plugin(
+            on_unit=lambda name, phase: seen.append(f'{name}-{phase}'),
+        )
+        wrap = unit_wrapper([plugin])
+        with wrap('first'):
+            pass
+        with wrap('second'):
+            pass
+        assert seen == [
+            'first-enter', 'first-exit',
+            'second-enter', 'second-exit',
         ]
 
 

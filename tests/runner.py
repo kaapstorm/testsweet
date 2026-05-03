@@ -1,6 +1,5 @@
 import importlib
 from contextlib import contextmanager
-from types import SimpleNamespace
 
 from testsweet import catch_exceptions, discover, run, test
 from testsweet._class_helpers import _public_methods
@@ -502,23 +501,22 @@ class PublicMethods:
 
 
 @test
-class RunWithPlugins:
-    def unit_hook_wraps_each_test(self):
+class RunWithWrapUnit:
+    def wrap_unit_brackets_each_test(self):
         events: list[str] = []
 
         @contextmanager
-        def unit_cm(name):
+        def wrap(name):
             events.append(f'enter:{name}')
             try:
                 yield
             finally:
                 events.append(f'exit:{name}')
 
-        plugin = SimpleNamespace(unit=unit_cm)
         mod = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
-        results = run(mod, plugins=[plugin])
+        results = run(mod, wrap_unit=wrap)
         assert [name for name, _ in results] == [
             'passes_one', 'passes_two',
         ]
@@ -527,40 +525,38 @@ class RunWithPlugins:
             'enter:passes_two', 'exit:passes_two',
         ]
 
-    def no_plugins_argument_works(self):
+    def no_wrap_unit_argument_works(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
         results = run(mod)
         assert len(results) == 2
 
-    def unit_enter_failure_attributed_to_test(self):
+    def wrap_unit_enter_failure_attributed_to_test(self):
         @contextmanager
-        def unit_cm(name):
+        def wrap(name):
             raise RuntimeError(f'enter:{name}')
             yield  # pragma: no cover
 
-        plugin = SimpleNamespace(unit=unit_cm)
         mod = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
-        results = run(mod, plugins=[plugin])
+        results = run(mod, wrap_unit=wrap)
         for _, exc in results:
             assert isinstance(exc, RuntimeError)
 
-    def unit_exit_failure_attributed_to_test(self):
+    def wrap_unit_exit_failure_attributed_to_test(self):
         @contextmanager
-        def unit_cm(name):
+        def wrap(name):
             try:
                 yield
             finally:
                 raise RuntimeError(f'exit:{name}')
 
-        plugin = SimpleNamespace(unit=unit_cm)
         mod = importlib.import_module(
             'tests.fixtures.runner.all_pass',
         )
-        results = run(mod, plugins=[plugin])
+        results = run(mod, wrap_unit=wrap)
         for _, exc in results:
             assert isinstance(exc, RuntimeError)
 
