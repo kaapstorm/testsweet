@@ -3,7 +3,11 @@ import tempfile
 
 from testsweet import test, test_params
 from testsweet._config import DiscoveryConfig
-from testsweet._walk import _walk_directory
+from testsweet._walk import (
+    _build_exclude_set,
+    _resolve_include_paths,
+    _walk_directory,
+)
 
 
 @test
@@ -105,3 +109,36 @@ class WalkDirectoryWithConfig:
                 excluded={test_b.resolve()},
             )
         assert [p.name for p in paths] == ['test_a.py']
+
+
+@test
+class GlobContainment:
+    def include_paths_outside_project_root_are_dropped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            outside = pathlib.Path(tmp).resolve()
+            project = outside / 'project'
+            project.mkdir()
+            (project / 'inside.py').write_text('')
+            (outside / 'sibling.py').write_text('')
+            config = DiscoveryConfig(
+                include_paths=('inside.py', '../sibling.py'),
+                project_root=project,
+            )
+            paths = _resolve_include_paths(config)
+        names = [p.name for p in paths]
+        assert names == ['inside.py']
+
+    def exclude_paths_outside_project_root_are_dropped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            outside = pathlib.Path(tmp).resolve()
+            project = outside / 'project'
+            project.mkdir()
+            (project / 'kept.py').write_text('')
+            (outside / 'other.py').write_text('')
+            config = DiscoveryConfig(
+                exclude_paths=('kept.py', '../other.py'),
+                project_root=project,
+            )
+            excluded = _build_exclude_set(config)
+        names = {p.name for p in excluded}
+        assert names == {'kept.py'}
