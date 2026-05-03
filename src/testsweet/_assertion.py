@@ -1,3 +1,14 @@
+"""Best-effort source-level explanation of failed asserts.
+
+Reads the source file referenced by the failing assertion's traceback,
+locates the ``assert`` AST node, and re-evaluates its sub-expressions
+in the original frame to show their values. ``Call`` sub-expressions
+are deliberately skipped: re-evaluating a call would fire its side
+effects a second time.
+
+Failures (missing source, syntax errors, eval errors) silently yield
+``None`` — the explainer is a nicety, not a correctness requirement.
+"""
 import ast
 from types import TracebackType
 
@@ -19,7 +30,9 @@ def explain_assertion(exc: AssertionError) -> str | None:
     lines = []
     seen: set[str] = set()
     for sub in _sub_exprs(assert_node.test):
-        if isinstance(sub, ast.Constant):
+        if isinstance(sub, (ast.Constant, ast.Call)):
+            # Skip constants (no information) and calls (re-evaluating
+            # would fire side effects a second time).
             continue
         src = ast.unparse(sub)
         if src in seen:
@@ -32,6 +45,8 @@ def explain_assertion(exc: AssertionError) -> str | None:
                 frame.f_locals,
             )
         except Exception:
+            # Sub-expression eval is best-effort; user code can raise
+            # anything. Skip and move on.
             continue
         lines.append(f'  {src} = {value!r}')
 

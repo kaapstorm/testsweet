@@ -150,6 +150,13 @@ Plugins are entered in entry-point iteration order. Each plugin's
 `session()` and `unit()` is a context manager; exceptions propagate
 normally and `__exit__` is not expected to suppress.
 
+### Trust
+
+Plugins are arbitrary Python code, executed at testsweet startup.
+Installing a plugin from PyPI is a trust decision equivalent to
+installing any other dependency — testsweet does not sandbox or
+allowlist plugins.
+
 
 Errors
 ------
