@@ -23,6 +23,12 @@ class implements the context-manager protocol — typically by
 inheriting `contextlib.AbstractContextManager` — the runner enters it
 for the duration of its method invocations.
 
+If the class defines a `__test_context__` method returning a context
+manager, the runner enters it once per test method, inside the
+class's `__enter__/__exit__` scope. This is the equivalent of
+unittest's `setUp()` and `tearDown()`. Subclasses can chain a parent
+implementation via `super().__test_context__()`.
+
 
 ### `test_params(args_iterable)`
 
@@ -97,15 +103,35 @@ Return the list of callables in `module` that are marked as tests.
 Useful when embedding Testsweet in a custom runner.
 
 
-### `run(module, names=None)`
+### `run(module, names=None, plugins=None)`
 
 ```python
 from testsweet import run
 ```
 
 Run the tests in `module`. If `names` is given, only run tests
-whose qualified names appear in the list. Returns a list of
+whose qualified names appear in the list. If `plugins` is given,
+each test call is wrapped in `plugin.unit(name)` for any plugin
+that defines a `unit` hook. Returns a list of
 `(name, exception_or_none)` tuples — `None` indicates success.
+
+
+Plugins
+-------
+
+Plugins are discovered via the `testsweet.plugins` entry-point group.
+A plugin is any module-like object exposing one or both of:
+
+* `session()` — a context manager wrapping the entire test run.
+* `unit(name)` — a context manager wrapping each test call.
+
+Both are optional. Plugins are ordinary Python distributions; they
+register themselves in their own `pyproject.toml`:
+
+```toml
+[project.entry-points."testsweet.plugins"]
+django = "testsweet_django"
+```
 
 
 Errors

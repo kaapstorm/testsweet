@@ -1,4 +1,6 @@
 import importlib
+from contextlib import contextmanager
+from types import SimpleNamespace
 
 from testsweet import catch_exceptions, discover, run, test
 from testsweet._class_helpers import _public_methods
@@ -497,3 +499,46 @@ class PublicMethods:
                 pass
 
         assert _public_methods(Cls) == ['regular']
+
+
+@test
+class RunWithPlugins:
+    def unit_hook_wraps_each_test(self):
+        events: list[str] = []
+
+        @contextmanager
+        def unit_cm(name):
+            events.append(f'enter:{name}')
+            try:
+                yield
+            finally:
+                events.append(f'exit:{name}')
+
+        plugin = SimpleNamespace(unit=unit_cm)
+        mod = importlib.import_module(
+            'tests.fixtures.runner.all_pass',
+        )
+        results = run(mod, plugins=[plugin])
+        assert [name for name, _ in results] == [
+            'passes_one', 'passes_two',
+        ]
+        assert events == [
+            'enter:passes_one', 'exit:passes_one',
+            'enter:passes_two', 'exit:passes_two',
+        ]
+
+    def plugin_without_unit_is_ignored(self):
+        plugin = SimpleNamespace()
+        mod = importlib.import_module(
+            'tests.fixtures.runner.all_pass',
+        )
+        results = run(mod, plugins=[plugin])
+        for _, exc in results:
+            assert exc is None
+
+    def no_plugins_argument_works(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.all_pass',
+        )
+        results = run(mod)
+        assert len(results) == 2

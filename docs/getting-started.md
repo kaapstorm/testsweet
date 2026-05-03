@@ -106,6 +106,60 @@ class UsesDatabase(AbstractContextManager):
         assert 'foo' in self.db
 ```
 
+For per-method setup/teardown (the equivalent of unittest's `setUp()`
+and `tearDown()`), define `__test_context__` on the class. The runner
+enters it once per test method, inside the class's `__enter__/__exit__`
+scope:
+
+```python
+@test
+class UsesDatabase(AbstractContextManager):
+    def __enter__(self):
+        self.db = {}
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.db.clear()
+        return None
+
+    @contextmanager
+    def __test_context__(self):
+        self.db['foo'] = 1
+        try:
+            yield
+        finally:
+            del self.db['foo']
+
+    def has_foo(self):
+        assert 'foo' in self.db
+```
+
+Subclasses can chain a parent's `__test_context__` via
+`super().__test_context__()`.
+
+
+Plugins
+-------
+
+Testsweet discovers plugins via the `testsweet.plugins` entry-point
+group. A plugin is any module exposing one or both of:
+
+* `session()` — a context manager that wraps the entire test run.
+  Use for one-time setup/teardown (e.g. provisioning a test database).
+* `unit(name)` — a context manager that wraps each test call. Use for
+  per-test isolation.
+
+Both hooks are optional. Plugins are installed as ordinary Python
+distributions and register themselves in their own `pyproject.toml`:
+
+```toml
+[project.entry-points."testsweet.plugins"]
+django = "testsweet_django"
+```
+
+See [testsweet-django](https://github.com/kaapstrom/testsweet-django)
+for an example.
+
 
 Parametrized tests
 ------------------

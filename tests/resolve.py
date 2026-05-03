@@ -116,3 +116,46 @@ class ResolveUnits:
         )
         names = [name for name, _ in resolve_units(mod)]
         assert names == ['passes', 'fails']
+
+
+@test
+class ResolveTestContext:
+    def test_context_brackets_each_method(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_with_test_context',
+        )
+        mod.CALLS.clear()
+        for name, call in resolve_units(
+            mod, names=['WithTestContext'],
+        ):
+            call()
+        assert mod.CALLS == [
+            'enter',
+            'ctx-enter', 'first', 'ctx-exit',
+            'ctx-enter', 'second', 'ctx-exit',
+            'exit',
+        ]
+
+    def test_context_works_without_class_cm(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_with_test_context',
+        )
+        mod.CALLS.clear()
+        for _, call in resolve_units(mod, names=['TestContextOnly']):
+            call()
+        assert mod.CALLS == ['only-enter', 'alpha', 'only-exit']
+
+    def super_chain_runs_parent_and_child_contexts(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_with_test_context',
+        )
+        mod.CALLS.clear()
+        for _, call in resolve_units(mod, names=['WithSuperChain']):
+            call()
+        assert mod.CALLS == [
+            'base-ctx-enter',
+            'child-ctx-enter',
+            'only',
+            'child-ctx-exit',
+            'base-ctx-exit',
+        ]
