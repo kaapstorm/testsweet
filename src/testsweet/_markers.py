@@ -1,5 +1,6 @@
 TEST_MARKER = '__testsweet_test__'
 SKIP_MARKER = '__testsweet_skip__'
+XFAIL_MARKER = '__testsweet_xfail__'
 
 
 def test(target):
