@@ -4,6 +4,10 @@ from contextlib import contextmanager
 from testsweet import catch_exceptions, discover, run, test
 from testsweet._class_helpers import _public_methods
 from testsweet._markers import TEST_MARKER
+from testsweet import params
+from testsweet._outcomes import Skipped, XFailed, XPassed
+from testsweet._skip import skip
+from testsweet._xfail import xfail
 
 
 @test
@@ -603,3 +607,151 @@ class RunWithTestContext:
         ]
         assert isinstance(results[0][1], RuntimeError)
         assert 'exit failed' in str(results[0][1])
+
+
+@test
+class RunWithOutcomes:
+    def skip_bare_skips_without_running_body(self):
+        called: list[str] = []
+
+        @test
+        @skip
+        def skipped():
+            called.append('ran')  # pragma: no cover
+
+        @test
+        def runs():
+            called.append('runs')
+
+        mod = _module_with(skipped=skipped, runs=runs)
+        results = run(mod)
+        outcomes = dict(results)
+        assert isinstance(outcomes['skipped'], Skipped)
+        assert outcomes['runs'] is None
+        assert called == ['runs']
+
+    def skip_with_if_false_runs_normally(self):
+        called: list[str] = []
+
+        @test
+        @skip(if_=False)
+        def maybe():
+            called.append('ran')
+
+        mod = _module_with(maybe=maybe)
+        results = run(mod)
+        assert called == ['ran']
+        assert results == [('maybe', None)]
+
+    def skip_reason_appears_on_skipped(self):
+        @test
+        @skip(reason='not yet implemented')
+        def pending():
+            pass  # pragma: no cover
+
+        mod = _module_with(pending=pending)
+        results = run(mod)
+        _, exc = results[0]
+        assert isinstance(exc, Skipped)
+        assert exc.reason == 'not yet implemented'
+
+    def xfail_body_raises_records_xfailed(self):
+        @test
+        @xfail(reason='known bug')
+        def broken():
+            raise ValueError('boom')
+
+        mod = _module_with(broken=broken)
+        results = run(mod)
+        _, exc = results[0]
+        assert isinstance(exc, XFailed)
+        assert isinstance(exc.actual, ValueError)
+        assert exc.reason == 'known bug'
+
+    def xfail_body_passes_records_xpassed(self):
+        @test
+        @xfail(reason='supposedly broken')
+        def secretly_works():
+            pass
+
+        mod = _module_with(secretly_works=secretly_works)
+        results = run(mod)
+        _, exc = results[0]
+        assert isinstance(exc, XPassed)
+        assert exc.reason == 'supposedly broken'
+
+    def skip_wins_over_xfail_when_both_present(self):
+        called: list[str] = []
+
+        @test
+        @skip(reason='skip me')
+        @xfail
+        def both():
+            called.append('ran')  # pragma: no cover
+
+        mod = _module_with(both=both)
+        results = run(mod)
+        _, exc = results[0]
+        assert isinstance(exc, Skipped)
+        assert exc.reason == 'skip me'
+        assert called == []
+
+    def skip_on_parametrized_skips_every_combo(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.skip_on_params',
+        )
+        importlib.reload(mod)
+        results = run(mod)
+        assert [name for name, _ in results] == [
+            'parametrized[0]', 'parametrized[1]',
+        ]
+        for _, exc in results:
+            assert isinstance(exc, Skipped)
+            assert exc.reason == 'blocked'
+        assert mod.CALLS == []
+
+    def xfail_on_parametrized_evaluated_independently(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.xfail_on_params',
+        )
+        results = run(mod)
+        outcomes = dict(results)
+        # x == 1 raises -> XFailed
+        assert isinstance(outcomes['parametrized[0]'], XFailed)
+        assert isinstance(outcomes['parametrized[0]'].actual, ValueError)
+        # x == 2 passes -> XPassed
+        assert isinstance(outcomes['parametrized[1]'], XPassed)
+
+    def skip_on_class_method_skips_method_only(self):
+        mod = importlib.import_module(
+            'tests.fixtures.runner.skip_on_class_method',
+        )
+        mod.CALLS.clear()
+        results = run(mod)
+        outcomes = dict(results)
+        assert isinstance(
+            outcomes['Cls.skipped_method'], Skipped,
+        )
+        assert outcomes['Cls.skipped_method'].reason == 'not yet'
+        assert outcomes['Cls.runs'] is None
+        # __enter__ / __exit__ still fire; skipped body does not.
+        assert mod.CALLS == ['enter', 'runs', 'exit']
+
+
+def _module_with(**funcs):
+    """Build a throwaway module exposing ``funcs`` as test units.
+
+    Used by RunWithOutcomes to test in-line decorator combinations
+    without spawning a fixture file per case.
+    """
+    import types
+
+    mod = types.ModuleType('tests.runner._inline')
+    for name, func in funcs.items():
+        # Rebind __qualname__ so resolve_units yields predictable names.
+        try:
+            func.__qualname__ = name
+        except (AttributeError, TypeError):
+            pass
+        setattr(mod, name, func)
+    return mod

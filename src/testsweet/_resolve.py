@@ -87,7 +87,13 @@ def _expand_callable(
         yield qualname, func
         return
     for i, args in enumerate(params):
-        yield f'{qualname}[{i}]', functools.partial(func, *args)
+        partial = functools.partial(func, *args)
+        # `functools.partial` does not inherit attributes from its
+        # underlying function, so markers like ``__testsweet_skip__``
+        # would be invisible to the runner. Copy ``__dict__`` (where
+        # markers live) onto the partial via ``update_wrapper``.
+        functools.update_wrapper(partial, func)
+        yield f'{qualname}[{i}]', partial
 
 
 def _build_plan(
