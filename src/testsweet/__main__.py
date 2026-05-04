@@ -4,7 +4,12 @@ import sys
 from testsweet._config import load_config
 from testsweet._loaders import scoped_sys_path
 from testsweet._plugins import load_plugins, session_for, unit_wrapper
-from testsweet._report import format_result_line, print_failure_detail
+from testsweet._outcomes import Skipped, XFailed
+from testsweet._report import (
+    format_result_line,
+    print_failure_detail,
+    summarize,
+)
 from testsweet._runner import run
 from testsweet._targets import discover_targets
 
@@ -38,7 +43,8 @@ def main(argv: list[str]) -> int:
         config = load_config(pathlib.Path.cwd())
         plugins = load_plugins()
         wrap_unit = unit_wrapper(plugins)
-        failures: list[tuple[str, Exception]] = []
+        results: list[tuple[str, Exception | None]] = []
+        real_failures: list[tuple[str, Exception]] = []
         with session_for(plugins):
             groups = discover_targets(argv, config)
             for module, names in groups:
@@ -47,11 +53,16 @@ def main(argv: list[str]) -> int:
                 ):
                     full_name = f'{module.__name__}.{name}'
                     print(format_result_line(full_name, exc))
-                    if exc is not None:
-                        failures.append((full_name, exc))
-        for full_name, exc in failures:
+                    results.append((full_name, exc))
+                    if exc is None:
+                        continue
+                    if isinstance(exc, (Skipped, XFailed)):
+                        continue
+                    real_failures.append((full_name, exc))
+        for full_name, exc in real_failures:
             print_failure_detail(full_name, exc)
-        return 1 if failures else 0
+        print(summarize(results))
+        return 1 if real_failures else 0
 
 
 def cli() -> None:

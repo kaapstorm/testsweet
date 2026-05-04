@@ -450,4 +450,7 @@ class Cli:
     def non_assertion_error_has_no_explanation_block(self):
         result = _run_cli('tests.fixtures.runner.non_assertion_error')
         assert result.returncode == 1
-        assert result.stdout.splitlines()[-1] == 'ValueError: boom'
+        lines = result.stdout.splitlines()
+        # Trailing line is the summary; the traceback line is just before it.
+        assert lines[-1] == '1 error'
+        assert lines[-2] == 'ValueError: boom'
