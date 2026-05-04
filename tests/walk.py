@@ -1,7 +1,7 @@
 import pathlib
 import tempfile
 
-from testsweet import test, test_params
+from testsweet import params, test
 from testsweet._config import DiscoveryConfig
 from testsweet._walk import (
     _build_exclude_set,
@@ -32,7 +32,7 @@ class WalkDirectory:
             names = [p.relative_to(root).as_posix() for p in paths]
             assert names == ['sub/inner.py', 'top.py']
 
-    @test_params([('.hidden',), ('__pycache__',), ('node_modules',)])
+    @params([('.hidden',), ('__pycache__',), ('node_modules',)])
     def excludes_directory(self, dirname):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)

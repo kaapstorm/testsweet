@@ -1,4 +1,4 @@
-from testsweet import test_params_lazy
+from testsweet import params_lazy, test
 
 
 def get_args():
@@ -6,6 +6,7 @@ def get_args():
         yield (i, i + 1, 2 * i + 1)
 
 
-@test_params_lazy(get_args())
+@test
+@params_lazy(get_args())
 def adds(a, b, expected):
     assert a + b == expected

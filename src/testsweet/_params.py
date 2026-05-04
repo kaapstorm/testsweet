@@ -1,13 +1,11 @@
 """Decorators for parametrized tests."""
 from typing import Callable, Iterable
 
-from testsweet._markers import TEST_MARKER
-
 
 PARAMS_MARKER = '__testsweet_params__'
 
 
-def test_params(args_iterable: Iterable) -> Callable:
+def params(args_iterable: Iterable) -> Callable:
     """Run the decorated function once per tuple in ``args_iterable``.
 
     The iterable is consumed eagerly at decoration time. Each tuple is
@@ -16,22 +14,25 @@ def test_params(args_iterable: Iterable) -> Callable:
     materialized = tuple(args_iterable)
 
     def decorator(func: Callable) -> Callable:
-        setattr(func, TEST_MARKER, True)
         setattr(func, PARAMS_MARKER, materialized)
         return func
 
     return decorator
 
 
-def test_params_lazy(args_iterable: Iterable) -> Callable:
-    """Like ``test_params``, but the iterable is consumed at run time.
+def params_lazy(args_iterable: Iterable) -> Callable:
+    """Like ``params``, but the iterable is consumed at run time.
 
     Use this when materializing the parameters is expensive or has
     side effects that should be deferred.
     """
     def decorator(func: Callable) -> Callable:
-        setattr(func, TEST_MARKER, True)
         setattr(func, PARAMS_MARKER, args_iterable)
         return func
 
     return decorator
+
+
+# Backwards-compat shims (removed in 0.2.0 step 9).
+test_params = params
+test_params_lazy = params_lazy

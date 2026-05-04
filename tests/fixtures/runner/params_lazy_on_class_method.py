@@ -1,8 +1,8 @@
-from testsweet import test, test_params_lazy
+from testsweet import params_lazy, test
 
 
 @test
 class Cls:
-    @test_params_lazy([(1, 2), (3, 4)])
+    @params_lazy([(1, 2), (3, 4)])
     def method(self, a, b):
         assert a < b

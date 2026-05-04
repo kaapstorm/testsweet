@@ -1,6 +1,6 @@
 from contextlib import AbstractContextManager, contextmanager
 
-from testsweet import test, test_params
+from testsweet import params, test
 
 
 CALLS: list[str] = []
@@ -24,7 +24,7 @@ class Cls(AbstractContextManager):
         finally:
             CALLS.append('ctx-exit')
 
-    @test_params([(1, 2), (3, 4)])
+    @params([(1, 2), (3, 4)])
     def method(self, a, b):
         CALLS.append(f'method({a},{b})')
         assert a < b

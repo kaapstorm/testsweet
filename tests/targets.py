@@ -4,7 +4,7 @@ import pathlib
 import sys
 import tempfile
 
-from testsweet import catch_exceptions, test, test_params
+from testsweet import catch_exceptions, params, test
 from testsweet._config import DiscoveryConfig
 from testsweet._targets import discover_targets, parse_target
 
@@ -24,7 +24,7 @@ class ParseTarget:
         assert module is expected
         assert names is None
 
-    @test_params(
+    @params(
         [
             ('tests/fixtures/runner/all_pass.py',),
             ('./tests/fixtures/runner/all_pass.py',),
@@ -38,7 +38,7 @@ class ParseTarget:
         assert names is None
         assert hasattr(module, 'passes_one')
 
-    @test_params(
+    @params(
         [
             (
                 'tests.fixtures.runner.all_pass.passes_one',

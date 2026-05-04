@@ -1,8 +1,8 @@
-from testsweet import test, test_params
+from testsweet import params, test
 
 
 @test
 class Cls:
-    @test_params([(1, 2), (3, 4)])
+    @params([(1, 2), (3, 4)])
     def method(self, a, b):
         assert a < b

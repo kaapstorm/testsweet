@@ -1,6 +1,7 @@
-from testsweet import test_params
+from testsweet import params, test
 
 
-@test_params([(1, 1, 2), (2, 3, 5)])
+@test
+@params([(1, 1, 2), (2, 3, 5)])
 def adds(a, b, expected):
     assert a + b == expected

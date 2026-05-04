@@ -5,8 +5,8 @@ import textwrap
 from testsweet import (
     ConfigurationError,
     catch_exceptions,
+    params,
     test,
-    test_params,
 )
 from testsweet._config import DiscoveryConfig, load_config
 
@@ -62,7 +62,7 @@ class LoadConfig:
             config = load_config(sub)
         assert config.project_root == root.resolve()
 
-    @test_params(
+    @params(
         [
             (
                 """

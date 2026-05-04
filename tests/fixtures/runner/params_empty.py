@@ -1,6 +1,7 @@
-from testsweet import test_params
+from testsweet import params, test
 
 
-@test_params([])
+@test
+@params([])
 def never_runs(a):
     raise AssertionError('should not run')

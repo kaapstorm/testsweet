@@ -4,7 +4,7 @@ import sys
 import tempfile
 import textwrap
 
-from testsweet import test, test_params
+from testsweet import params, test
 
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -32,7 +32,7 @@ class Cli:
                 assert True
         """
 
-    @test_params(
+    @params(
         [
             (
                 ('tests.fixtures.runner.all_pass',),
@@ -65,7 +65,7 @@ class Cli:
         assert 'fails ... FAIL:' in result.stdout
         assert 'AssertionError' in result.stdout
 
-    @test_params(
+    @params(
         [
             (('a', 'b'), 'ModuleNotFoundError'),
             (('not_a_real_module_xyzzy',), 'ModuleNotFoundError'),
@@ -394,7 +394,7 @@ class Cli:
         assert result.returncode == 0
         assert result.stdout.startswith('Usage: testsweet')
 
-    @test_params([(('-h',),), (('--help',),)])
+    @params([(('-h',),), (('--help',),)])
     def help_flag_prints_usage_and_exits_zero(self, args):
         result = _run_cli(*args)
         assert result.returncode == 0

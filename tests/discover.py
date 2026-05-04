@@ -1,11 +1,11 @@
 import importlib
 
-from testsweet import discover, test, test_params
+from testsweet import discover, params, test
 
 
 @test
 class Discover:
-    @test_params(
+    @params(
         [
             ('tests.fixtures.empty', []),
             ('tests.fixtures.single', ['only_test']),

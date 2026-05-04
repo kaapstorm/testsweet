@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from testsweet import test, test_params
+from testsweet import params, test
 
 
 # Tests are identified by the `test` decorator
@@ -9,7 +9,8 @@ def or_dicts():
 
 
 # pytest-style parametrized tests are supported
-@test_params(
+@test
+@params(
     [
         ({'foo': 1}, {'bar': 2}, {'foo': 1, 'bar': 2}),
         ({'foo'}, {'bar'}, {'foo', 'bar'}),

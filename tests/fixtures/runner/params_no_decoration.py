@@ -1,4 +1,4 @@
-from testsweet import test, test_params
+from testsweet import params, test
 
 
 @test
@@ -6,6 +6,7 @@ def plain():
     assert True
 
 
-@test_params([(1, 1, 2)])
+@test
+@params([(1, 1, 2)])
 def parameterized(a, b, expected):
     assert a + b == expected
