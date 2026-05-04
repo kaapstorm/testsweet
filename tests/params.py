@@ -2,8 +2,6 @@ from testsweet import (
     params,
     params_lazy,
     test,
-    test_params,
-    test_params_lazy,
 )
 from testsweet._markers import TEST_MARKER
 from testsweet._params import PARAMS_MARKER
@@ -95,12 +93,3 @@ class ParamsLazy:
             return a + b
 
         assert f(1, 2) == 3
-
-
-@test
-class BackwardsCompatShims:
-    def test_params_is_alias_of_params(self):
-        assert test_params is params
-
-    def test_params_lazy_is_alias_of_params_lazy(self):
-        assert test_params_lazy is params_lazy

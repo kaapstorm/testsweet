@@ -31,8 +31,3 @@ def params_lazy(args_iterable: Iterable) -> Callable:
         return func
 
     return decorator
-
-
-# Backwards-compat shims (removed in 0.2.0 step 9).
-test_params = params
-test_params_lazy = params_lazy

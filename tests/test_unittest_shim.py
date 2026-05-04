@@ -17,7 +17,7 @@ class ImportSmoke(unittest.TestCase):
             'discover',
             'run',
             'test',
-            'test_params',
-            'test_params_lazy',
+            'params',
+            'params_lazy',
         ):
             self.assertTrue(hasattr(testsweet, name), name)
