@@ -30,26 +30,128 @@ unittest's `setUp()` and `tearDown()`. Subclasses can chain a parent
 implementation via `super().__test_context__()`.
 
 
-### `test_params(args_iterable)`
+### `params(args_iterable)`
 
 ```python
-from testsweet import test_params
+from testsweet import params, test
 ```
 
 Run the decorated function once for each tuple in `args_iterable`.
 The iterable is materialized eagerly at decoration time. Each tuple
-is unpacked as positional arguments to the function.
-
-
-### `test_params_lazy(args_iterable)`
+is unpacked as positional arguments to the function. Stack with
+`@test` to register the function for discovery:
 
 ```python
-from testsweet import test_params_lazy
+@test
+@params([(1, 2, 3), (4, 5, 9)])
+def adds(a, b, expected):
+    assert a + b == expected
 ```
 
-Like `test_params`, but the iterable is consumed at run time rather
-than at decoration time. Use this when materializing the parameters
-is expensive or has side effects that should be deferred.
+
+### `params_lazy(args_iterable)`
+
+```python
+from testsweet import params_lazy, test
+```
+
+Like `params`, but the iterable is consumed at run time rather than
+at decoration time. Use this when materializing the parameters is
+expensive or has side effects that should be deferred.
+
+
+### `skip`
+
+```python
+from testsweet import skip, test
+```
+
+Mark a test as skipped. Bare `@skip` always skips. Called as
+`@skip(reason='…')` it records a human-readable reason; called as
+`@skip(if_=condition)` it skips only when `condition` is truthy.
+
+```python
+@test
+@skip(if_=sys.platform == 'win32', reason='posix-only')
+def uses_fork():
+    ...
+```
+
+
+### `xfail`
+
+```python
+from testsweet import test, xfail
+```
+
+Mark a test as expected to fail. If the test raises, the runner
+reports `XFAIL`; if it unexpectedly passes, the runner reports
+`XPASS` and the run fails (testsweet's `@xfail` is strict).
+
+Like `@skip`, `@xfail` accepts `reason=` and `if_=`:
+
+```python
+@test
+@xfail(reason='regression #123')
+def known_bug():
+    assert broken_thing() == 42
+```
+
+
+### `tag(name)`
+
+```python
+from testsweet import tag, test
+```
+
+Attach a free-form tag to a test. Multiple `@tag` decorators stack.
+Tags are stored on the test for tooling to inspect; testsweet does
+not currently filter by tag from the command line.
+
+```python
+@test
+@tag('slow')
+@tag('network')
+def hits_a_real_server():
+    ...
+```
+
+
+Outcome sentinels
+-----------------
+
+The runner constructs (does not raise) one of these classes and
+places it in the exception slot of the result tuple returned by
+`run()`. They subclass `Exception` so the result-tuple shape is
+unchanged. Tooling distinguishes them with `isinstance`.
+
+### `Skipped`
+
+```python
+from testsweet import Skipped
+```
+
+Placed when an active `@skip` marker matched. Carries a `reason`
+attribute (may be `None`).
+
+### `XFailed`
+
+```python
+from testsweet import XFailed
+```
+
+Placed when an `@xfail`-marked test raised the expected failure.
+Carries the underlying exception as `actual` and the marker's
+`reason`.
+
+### `XPassed`
+
+```python
+from testsweet import XPassed
+```
+
+Placed when an `@xfail`-marked test unexpectedly passed. Treated as
+a failure for exit-code purposes.
 
 
 Exception and warning capture
@@ -113,7 +215,11 @@ Run the tests in `module`. If `names` is given, only run tests
 whose qualified names appear in the list. If `wrap_unit` is given,
 each test call is wrapped in `wrap_unit(name)`, which must return a
 context manager. Returns a list of `(name, exception_or_none)`
-tuples — `None` indicates success.
+tuples — `None` indicates a regular pass.
+
+The exception slot may also hold a `Skipped`, `XFailed`, or
+`XPassed` sentinel for tests marked with `@skip` or `@xfail`. Use
+`isinstance` to distinguish these from genuine failures.
 
 
 Plugins

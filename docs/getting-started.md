@@ -181,13 +181,15 @@ for a working example.
 Parametrized tests
 ------------------
 
-Use `@test_params` to run the same test against multiple inputs:
+Stack `@test` with `@params` to run the same test against multiple
+inputs:
 
 ```python
-from testsweet import test_params
+from testsweet import params, test
 
 
-@test_params([
+@test
+@params([
     ({'foo': 1}, {'bar': 2}, {'foo': 1, 'bar': 2}),
     ({'foo'}, {'bar'}, {'foo', 'bar'}),
     (0b01, 0b10, 0b11),
@@ -197,7 +199,106 @@ def or_things(thing1, thing2, expected):
 ```
 
 If the parameter source is expensive to materialize and you only want
-it consumed at run time, use `@test_params_lazy` instead.
+it consumed at run time, use `@params_lazy` instead.
+
+> **Migrating from 0.1.x:** the older single-decorator forms
+> `@test_params` and `@test_params_lazy` were renamed to `@params` and
+> `@params_lazy` in 0.2.0, and they no longer imply `@test`. Stack
+> `@test` on top of `@params(...)` (or `@params_lazy(...)`) on the
+> functions or methods you want discovered.
+
+
+Skipping and expected failures
+------------------------------
+
+Mark a test as skipped with `@skip`. Without arguments, the test is
+always skipped:
+
+```python
+from testsweet import skip, test
+
+
+@test
+@skip
+def not_ready_yet():
+    ...
+```
+
+Pass `reason=` to record why the test is skipped — the reason is
+shown in the runner output:
+
+```python
+@test
+@skip(reason='waiting on upstream fix')
+def hits_broken_api():
+    ...
+```
+
+Use `if_=` to skip conditionally. The condition is evaluated at
+discovery time, so `if_=` accepts any boolean expression:
+
+```python
+import sys
+
+
+@test
+@skip(if_=sys.platform == 'win32', reason='posix-only')
+def uses_fork():
+    ...
+```
+
+`@xfail` marks a test as expected to fail. If it raises, the runner
+reports `XFAIL` and treats it as a pass for exit-code purposes:
+
+```python
+from testsweet import test, xfail
+
+
+@test
+@xfail(reason='regression in 0.2.0, see #123')
+def known_bug():
+    assert broken_thing() == 42
+```
+
+Testsweet's `@xfail` is **strict**: if a test marked `@xfail`
+unexpectedly passes, the runner reports `XPASS` and the run fails.
+Either remove the marker (the bug is fixed) or fix the test.
+
+`@xfail` also accepts `if_=` for conditional expected failure.
+
+The runner reports skip/xfail/xpass results by placing one of three
+sentinel classes — `Skipped`, `XFailed`, or `XPassed` — in the
+exception slot of the result tuple returned by `run()`. Tooling that
+inspects results can distinguish them with `isinstance`.
+
+
+Tags
+----
+
+`@tag` attaches a free-form tag to a test:
+
+```python
+from testsweet import tag, test
+
+
+@test
+@tag('slow')
+def big_integration_run():
+    ...
+```
+
+Multiple tags stack:
+
+```python
+@test
+@tag('slow')
+@tag('network')
+def hits_a_real_server():
+    ...
+```
+
+Tags are stored on the test for tooling to inspect. Filtering on
+tags from the command line is not yet implemented in 0.2.0.
 
 
 Running tests
