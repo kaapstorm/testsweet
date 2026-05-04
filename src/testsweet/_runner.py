@@ -14,7 +14,7 @@ from testsweet._outcomes import (
     XFailed,
     XPassed,
 )
-from testsweet._resolve import resolve_units
+from testsweet._resolve import TagFilter, resolve_units
 from testsweet._skip import SkipMarker
 from testsweet._xfail import XFailMarker
 
@@ -23,12 +23,17 @@ def run(
     module: ModuleType,
     names: list[str] | None = None,
     wrap_unit: Callable[[str], AbstractContextManager[Any]] | None = None,
+    keep: TagFilter | None = None,
 ) -> list[tuple[str, Outcome]]:
     """Run the tests in ``module``.
 
     If ``names`` is given, only run tests whose qualified names appear
     in the list. If ``wrap_unit`` is given, each test call is wrapped
-    in ``wrap_unit(name)``, which must return a context manager.
+    in ``wrap_unit(name)``, which must return a context manager. If
+    ``keep`` is given, each test's effective tag set is passed to it
+    and the test runs only when the predicate returns truthy. A
+    method's effective tag set is the union of its class's tags and
+    its own.
 
     Returns a list of ``(name, outcome)`` tuples. ``outcome`` is one
     of ``Passed``, ``Failed``, ``Errored``, ``Skipped``, ``XFailed``,
@@ -38,7 +43,7 @@ def run(
         def wrap_unit(_name: str) -> AbstractContextManager[Any]:
             return nullcontext()
     results: list[tuple[str, Outcome]] = []
-    for name, call in resolve_units(module, names):
+    for name, call in resolve_units(module, names, keep=keep):
         results.append((name, _run_one(name, call, wrap_unit)))
     return results
 

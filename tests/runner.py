@@ -805,6 +805,100 @@ class RunWithOutcomes:
         assert mod.CALLS == ['enter', 'runs', 'exit']
 
 
+@test
+class RunWithTagFilter:
+    def _module(self):
+        return importlib.import_module(
+            'tests.fixtures.runner.tagged_class',
+        )
+
+    def keep_none_runs_everything(self):
+        results = run(self._module())
+        names = sorted(name for name, _ in results)
+        assert names == [
+            'SlowSuite.alpha',
+            'SlowSuite.beta',
+            'Untagged.delta',
+            'Untagged.gamma',
+            'lone_function',
+            'untagged_function',
+        ]
+
+    def include_filters_function_and_propagates_to_class(self):
+        from testsweet._tag_filter import make_tag_filter
+        keep = make_tag_filter(frozenset({'slow'}), frozenset())
+        results = run(self._module(), keep=keep)
+        names = sorted(name for name, _ in results)
+        # Both SlowSuite methods inherit the class's @tag('slow').
+        # The lone tagged function matches; everything else falls out.
+        assert names == [
+            'SlowSuite.alpha',
+            'SlowSuite.beta',
+            'lone_function',
+        ]
+
+    def include_matches_method_only_tag(self):
+        from testsweet._tag_filter import make_tag_filter
+        keep = make_tag_filter(frozenset({'db'}), frozenset())
+        results = run(self._module(), keep=keep)
+        names = sorted(name for name, _ in results)
+        # Untagged.gamma carries @tag('db') on the method;
+        # SlowSuite.beta carries @tag('db') on top of the class's
+        # @tag('slow').
+        assert names == ['SlowSuite.beta', 'Untagged.gamma']
+
+    def exclude_drops_class_and_function(self):
+        from testsweet._tag_filter import make_tag_filter
+        keep = make_tag_filter(frozenset(), frozenset({'slow'}))
+        results = run(self._module(), keep=keep)
+        names = sorted(name for name, _ in results)
+        # Class-level @tag('slow') vetoes both SlowSuite methods;
+        # the lone function falls out too.
+        assert names == [
+            'Untagged.delta',
+            'Untagged.gamma',
+            'untagged_function',
+        ]
+
+    def exclude_overrides_include_when_both_apply(self):
+        from testsweet._tag_filter import make_tag_filter
+        keep = make_tag_filter(
+            frozenset({'slow'}), frozenset({'db'}),
+        )
+        results = run(self._module(), keep=keep)
+        names = sorted(name for name, _ in results)
+        # SlowSuite.alpha — slow only, kept.
+        # SlowSuite.beta — slow+db, vetoed.
+        # lone_function — slow only, kept.
+        assert names == ['SlowSuite.alpha', 'lone_function']
+
+    def class_with_no_eligible_methods_is_not_entered(self):
+        # When every method is filtered out, the class's __enter__
+        # must not fire (otherwise the class does setup/teardown
+        # work for nothing).
+        mod = importlib.import_module(
+            'tests.fixtures.runner.class_calls_recorded',
+        )
+        mod.CALLS.clear()
+        from testsweet._tag_filter import make_tag_filter
+        keep = make_tag_filter(frozenset({'no-such-tag'}), frozenset())
+        results = run(mod, keep=keep)
+        assert results == []
+        assert mod.CALLS == []
+
+    def filter_composes_with_names(self):
+        from testsweet._tag_filter import make_tag_filter
+        keep = make_tag_filter(frozenset({'db'}), frozenset())
+        results = run(
+            self._module(),
+            names=['Untagged'],
+            keep=keep,
+        )
+        # names= picks the Untagged class; keep= narrows to its
+        # 'db'-tagged method.
+        assert [name for name, _ in results] == ['Untagged.gamma']
+
+
 def _module_with(**funcs):
     """Build a throwaway module exposing ``funcs`` as test units.
 

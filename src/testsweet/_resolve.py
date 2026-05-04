@@ -13,12 +13,17 @@ from typing import Any, Callable, Iterator
 
 from testsweet._class_helpers import _public_methods
 from testsweet._discover import discover
+from testsweet._markers import TAGS_MARKER
 from testsweet._params import PARAMS_MARKER
+
+
+TagFilter = Callable[[frozenset[str]], bool]
 
 
 def resolve_units(
     module: ModuleType,
     names: list[str] | None = None,
+    keep: TagFilter | None = None,
 ) -> Iterator[tuple[str, Callable[[], Any]]]:
     # `_build_plan` runs synchronously here (above
     # `chain.from_iterable`), so `LookupError` for unmatched names
@@ -30,11 +35,11 @@ def resolve_units(
     units = discover(module)
     if names is None:
         return itertools.chain.from_iterable(
-            _expand_unit(unit, None) for unit in units
+            _expand_unit(unit, None, keep) for unit in units
         )
     plan = _build_plan(units, names)
     return itertools.chain.from_iterable(
-        _expand_unit(unit, plan[unit.__qualname__])
+        _expand_unit(unit, plan[unit.__qualname__], keep)
         for unit in units
         if unit.__qualname__ in plan
     )
@@ -43,8 +48,26 @@ def resolve_units(
 def _expand_unit(
     unit: Any,
     method_filter: set[str] | None,
+    keep: TagFilter | None,
 ) -> Iterator[tuple[str, Callable[[], Any]]]:
     if isinstance(unit, type):
+        class_tags: frozenset[str] = getattr(
+            unit, TAGS_MARKER, frozenset(),
+        )
+        eligible = [
+            method_name
+            for method_name in _public_methods(unit)
+            if (
+                method_filter is None
+                or method_name in method_filter
+            )
+            and (
+                keep is None
+                or keep(class_tags | _method_tags(unit, method_name))
+            )
+        ]
+        if not eligible:
+            return
         instance = unit()
         cm = (
             instance
@@ -53,18 +76,24 @@ def _expand_unit(
         )
         with cm:
             test_context = getattr(instance, '__test_context__', None)
-            for method_name in _public_methods(unit):
-                if (
-                    method_filter is not None
-                    and method_name not in method_filter
-                ):
-                    continue
+            for method_name in eligible:
                 bound = getattr(instance, method_name)
                 if test_context is not None:
                     bound = _wrap_in_cm(bound, test_context)
                 yield from _expand_callable(bound, bound.__qualname__)
     else:
+        if keep is not None:
+            tags: frozenset[str] = getattr(
+                unit, TAGS_MARKER, frozenset(),
+            )
+            if not keep(tags):
+                return
         yield from _expand_callable(unit, unit.__qualname__)
+
+
+def _method_tags(cls: type, method_name: str) -> frozenset[str]:
+    method = getattr(cls, method_name)
+    return getattr(method, TAGS_MARKER, frozenset())
 
 
 def _wrap_in_cm(

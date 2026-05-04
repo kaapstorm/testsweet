@@ -447,6 +447,67 @@ class Cli:
         assert 'a > b = False' in result.stdout
         assert 'b > 0 = True' in result.stdout
 
+    def include_tag_runs_only_matching(self):
+        result = _run_cli(
+            '-t', 'slow',
+            'tests.fixtures.runner.tagged_class',
+        )
+        assert result.returncode == 0
+        # Class-level @tag('slow') on SlowSuite propagates to both
+        # methods; lone_function carries @tag('slow') directly.
+        assert 'SlowSuite.alpha ... ok' in result.stdout
+        assert 'SlowSuite.beta ... ok' in result.stdout
+        assert 'lone_function ... ok' in result.stdout
+        assert 'untagged_function' not in result.stdout
+        assert 'Untagged.delta' not in result.stdout
+
+    def exclude_tag_drops_matching(self):
+        result = _run_cli(
+            '-T', 'slow',
+            'tests.fixtures.runner.tagged_class',
+        )
+        assert result.returncode == 0
+        assert 'untagged_function ... ok' in result.stdout
+        assert 'Untagged.delta ... ok' in result.stdout
+        assert 'SlowSuite.alpha' not in result.stdout
+        assert 'lone_function' not in result.stdout
+
+    def long_form_flags_work(self):
+        result = _run_cli(
+            '--tag', 'db',
+            '--exclude-tag', 'slow',
+            'tests.fixtures.runner.tagged_class',
+        )
+        assert result.returncode == 0
+        assert 'Untagged.gamma ... ok' in result.stdout
+        # SlowSuite.beta has db but also slow (from class) — vetoed.
+        assert 'SlowSuite.beta' not in result.stdout
+
+    def repeated_include_is_or(self):
+        result = _run_cli(
+            '-t', 'slow', '-t', 'db',
+            'tests.fixtures.runner.tagged_class',
+        )
+        assert result.returncode == 0
+        # Anything tagged slow OR db; only untagged_function and
+        # Untagged.delta drop out.
+        assert 'untagged_function' not in result.stdout
+        assert 'Untagged.delta' not in result.stdout
+        assert 'SlowSuite.alpha ... ok' in result.stdout
+        assert 'Untagged.gamma ... ok' in result.stdout
+
+    def overlapping_include_and_exclude_errors(self):
+        result = _run_cli('-t', 'slow', '-T', 'slow')
+        assert result.returncode == 2
+        assert 'cannot be both' in result.stderr
+        assert 'slow' in result.stderr
+
+    def empty_filter_runs_everything(self):
+        result = _run_cli('tests.fixtures.runner.tagged_class')
+        assert result.returncode == 0
+        assert 'untagged_function ... ok' in result.stdout
+        assert 'SlowSuite.alpha ... ok' in result.stdout
+
     def non_assertion_error_has_no_explanation_block(self):
         result = _run_cli('tests.fixtures.runner.non_assertion_error')
         assert result.returncode == 1

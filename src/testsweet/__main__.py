@@ -1,3 +1,4 @@
+import argparse
 import pathlib
 import sys
 
@@ -11,12 +12,13 @@ from testsweet._report import (
     summarize,
 )
 from testsweet._runner import run
+from testsweet._tag_filter import make_tag_filter
 from testsweet._targets import discover_targets
 
 
 _USAGE = """\
-Usage: testsweet [-h | --help] [TARGET ...]
-       python -m testsweet [-h | --help] [TARGET ...]
+Usage: testsweet [-h | --help] [-t TAG]... [-T TAG]... [TARGET ...]
+       python -m testsweet [-h | --help] [-t TAG]... [-T TAG]... [TARGET ...]
 
 Run testsweet tests. Each TARGET selects what to run:
 
@@ -30,15 +32,57 @@ Run testsweet tests. Each TARGET selects what to run:
 With no TARGET, testsweet walks the current working directory using any
 [tool.testsweet.discovery] configuration in pyproject.toml.
 
+Tag filters select tests by their @tag decorators. A method's effective
+tags are the union of its class's tags and its own.
+
 Options:
   -h, --help          Show this help message and exit.
+  -t, --tag TAG       Run only tests with this tag (repeat for OR).
+  -T, --exclude-tag TAG
+                      Skip tests with this tag (repeat). A test runs
+                      iff it matches some --tag (or none was given)
+                      AND has no --exclude-tag.
 """
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        '-t', '--tag',
+        action='append', default=[], dest='include_tags', metavar='TAG',
+    )
+    parser.add_argument(
+        '-T', '--exclude-tag',
+        action='append', default=[], dest='exclude_tags', metavar='TAG',
+    )
+    parser.add_argument('targets', nargs='*')
+    return parser
 
 
 def main(argv: list[str]) -> int:
     if any(arg in ('-h', '--help') for arg in argv):
         print(_USAGE, end='')
         return 0
+    try:
+        args = _build_parser().parse_args(argv)
+    except SystemExit as exc:
+        # argparse prints to stderr and calls sys.exit on error.
+        return int(exc.code or 2)
+    include = frozenset(args.include_tags)
+    exclude = frozenset(args.exclude_tags)
+    overlap = include & exclude
+    if overlap:
+        joined = ', '.join(sorted(overlap))
+        print(
+            f'error: tag(s) cannot be both --tag and --exclude-tag: '
+            f'{joined}',
+            file=sys.stderr,
+        )
+        return 2
+    keep = (
+        make_tag_filter(include, exclude)
+        if (include or exclude) else None
+    )
     with scoped_sys_path():
         config = load_config(pathlib.Path.cwd())
         plugins = load_plugins()
@@ -46,10 +90,13 @@ def main(argv: list[str]) -> int:
         results: list[tuple[str, Outcome]] = []
         real_failures: list[tuple[str, Outcome]] = []
         with session_for(plugins):
-            groups = discover_targets(argv, config)
+            groups = discover_targets(args.targets, config)
             for module, names in groups:
                 for name, outcome in run(
-                    module, names=names, wrap_unit=wrap_unit,
+                    module,
+                    names=names,
+                    wrap_unit=wrap_unit,
+                    keep=keep,
                 ):
                     full_name = f'{module.__name__}.{name}'
                     print(format_result_line(full_name, outcome))

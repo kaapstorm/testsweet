@@ -308,8 +308,35 @@ def hits_a_real_server():
     ...
 ```
 
-Tags are stored on the test for tooling to inspect. Filtering on
-tags from the command line is not yet implemented in 0.2.0.
+A class-level `@tag` propagates to every method on the class. A
+method's effective tag set is the union of its class's tags and its
+own:
+
+```python
+@test
+@tag('integration')
+class HitsDatabase:
+    def reads(self):       # tags: {'integration'}
+        ...
+
+    @tag('slow')
+    def big_join(self):    # tags: {'integration', 'slow'}
+        ...
+```
+
+Filter by tag at the command line:
+
+```shell
+testsweet -t slow                # run only @tag('slow') tests
+testsweet -t db -t integration   # run tests tagged db OR integration
+testsweet -T flaky               # skip @tag('flaky') tests
+testsweet -t slow -T flaky       # slow but not flaky
+```
+
+`-t` / `--tag` and `-T` / `--exclude-tag` are repeatable. A test runs
+iff it matches some `--tag` (or none was given) and has no
+`--exclude-tag`. `--exclude-tag` is a hard veto: a test tagged with
+both an included and an excluded tag is skipped.
 
 
 Running tests

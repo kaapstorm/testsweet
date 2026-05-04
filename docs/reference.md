@@ -110,9 +110,10 @@ def known_bug():
 from testsweet import tag, test
 ```
 
-Attach a free-form tag to a test. Multiple `@tag` decorators stack.
-Tags are stored on the test for tooling to inspect; testsweet does
-not currently filter by tag from the command line.
+Attach a free-form tag to a test. Multiple `@tag` decorators stack
+(set-union). A class-level `@tag` propagates to every method on the
+class — a method's effective tag set is the union of its class's
+tags and its own.
 
 ```python
 @test
@@ -121,6 +122,18 @@ not currently filter by tag from the command line.
 def hits_a_real_server():
     ...
 ```
+
+The CLI accepts `-t`/`--tag` and `-T`/`--exclude-tag` to filter by
+tag; both flags are repeatable. A test runs iff it matches some
+`--tag` (or none was given) AND has no `--exclude-tag`.
+`--exclude-tag` is a hard veto.
+
+```shell
+testsweet -t slow -T flaky
+```
+
+The `run()` function exposes the same filter via the `keep=` kwarg,
+which takes a `Callable[[frozenset[str]], bool]`.
 
 
 Outcomes
@@ -216,7 +229,7 @@ Return the list of callables in `module` that are marked as tests.
 Useful when embedding Testsweet in a custom runner.
 
 
-### `run(module, names=None, wrap_unit=None)`
+### `run(module, names=None, wrap_unit=None, keep=None)`
 
 ```python
 from testsweet import run
@@ -225,8 +238,11 @@ from testsweet import run
 Run the tests in `module`. If `names` is given, only run tests
 whose qualified names appear in the list. If `wrap_unit` is given,
 each test call is wrapped in `wrap_unit(name)`, which must return a
-context manager. Returns a `list[tuple[str, Outcome]]` — see
-[Outcomes](#outcomes) for the variants.
+context manager. If `keep` is given, each test's effective tag set
+(class tags ∪ method tags) is passed to it and the test runs only
+when the predicate returns truthy. Returns a
+`list[tuple[str, Outcome]]` — see [Outcomes](#outcomes) for the
+variants.
 
 
 Plugins
