@@ -286,6 +286,11 @@ Installing a plugin from PyPI is a trust decision equivalent to
 installing any other dependency — testsweet does not sandbox or
 allowlist plugins.
 
+### Known plugins
+
+* [testsweet-django](https://github.com/kaapstorm/testsweet-django/) is
+  the first plugin and example implementation. 
+
 
 Errors
 ------
