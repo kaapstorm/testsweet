@@ -1,4 +1,5 @@
 TEST_MARKER = '__testsweet_test__'
+SKIP_MARKER = '__testsweet_skip__'
 
 
 def test(target):
