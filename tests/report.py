@@ -1,7 +1,14 @@
 import io
 
 from testsweet import test
-from testsweet._outcomes import Skipped, XFailed, XPassed
+from testsweet._outcomes import (
+    Errored,
+    Failed,
+    Passed,
+    Skipped,
+    XFailed,
+    XPassed,
+)
 from testsweet._report import (
     format_result_line,
     print_failure_detail,
@@ -9,16 +16,16 @@ from testsweet._report import (
 )
 
 
-def _capture(full_name, exc):
+def _capture(full_name, outcome):
     buf = io.StringIO()
-    print_failure_detail(full_name, exc, file=buf)
+    print_failure_detail(full_name, outcome, file=buf)
     return buf.getvalue()
 
 
 @test
 class FormatResultLine:
     def pass_outcome(self):
-        assert format_result_line('mod.t', None) == 'mod.t ... ok'
+        assert format_result_line('mod.t', Passed()) == 'mod.t ... ok'
 
     def skipped_with_reason(self):
         line = format_result_line('mod.t', Skipped('not yet'))
@@ -46,14 +53,14 @@ class FormatResultLine:
         line = format_result_line('mod.t', XPassed())
         assert line == 'mod.t ... XPASSED'
 
-    def fail_for_assertion_error(self):
-        exc = AssertionError('1 == 2')
-        line = format_result_line('mod.t', exc)
+    def failed_for_assertion_error(self):
+        outcome = Failed(AssertionError('1 == 2'))
+        line = format_result_line('mod.t', outcome)
         assert line == 'mod.t ... FAIL: AssertionError: 1 == 2'
 
-    def error_for_other_exception(self):
-        exc = TypeError("'int' object is not iterable")
-        line = format_result_line('mod.t', exc)
+    def errored_for_other_exception(self):
+        outcome = Errored(TypeError("'int' object is not iterable"))
+        line = format_result_line('mod.t', outcome)
         assert line == (
             "mod.t ... ERROR: TypeError: 'int' object is not iterable"
         )
@@ -61,6 +68,9 @@ class FormatResultLine:
 
 @test
 class PrintFailureDetail:
+    def passed_emits_nothing(self):
+        assert _capture('mod.t', Passed()) == ''
+
     def skipped_emits_nothing(self):
         assert _capture('mod.t', Skipped('reason')) == ''
 
@@ -78,19 +88,19 @@ class PrintFailureDetail:
         out = _capture('mod.t', XPassed())
         assert 'Traceback' not in out
 
-    def fail_emits_traceback_block(self):
+    def failed_emits_traceback_block(self):
         try:
             assert 1 == 2
         except AssertionError as exc:
-            out = _capture('mod.t', exc)
+            out = _capture('mod.t', Failed(exc))
         assert 'FAIL: mod.t' in out
         assert 'AssertionError' in out
 
-    def error_emits_error_block(self):
+    def errored_emits_error_block(self):
         try:
             raise TypeError('nope')
         except TypeError as exc:
-            out = _capture('mod.t', exc)
+            out = _capture('mod.t', Errored(exc))
         assert 'ERROR: mod.t' in out
         assert 'TypeError' in out
 
@@ -101,15 +111,15 @@ class Summarize:
         assert summarize([]) == '0 tests'
 
     def all_passes(self):
-        results = [('a', None), ('b', None)]
+        results = [('a', Passed()), ('b', Passed())]
         assert summarize(results) == '2 passed'
 
     def mixed_outcomes(self):
         results = [
-            ('p1', None),
-            ('p2', None),
-            ('f1', AssertionError('x')),
-            ('e1', TypeError('y')),
+            ('p1', Passed()),
+            ('p2', Passed()),
+            ('f1', Failed(AssertionError('x'))),
+            ('e1', Errored(TypeError('y'))),
             ('s1', Skipped('later')),
             ('xf1', XFailed(ValueError('z'))),
             ('xp1', XPassed()),
@@ -124,13 +134,15 @@ class Summarize:
         assert summarize(results) == '2 skipped'
 
     def category_order_is_stable(self):
+        # Insertion order in `results` doesn't matter — summarize
+        # always emits passed → failed → error → skipped → xfailed
+        # → xpassed.
         results = [
             ('xp1', XPassed()),
-            ('p1', None),
+            ('p1', Passed()),
             ('s1', Skipped()),
-            ('f1', AssertionError()),
+            ('f1', Failed(AssertionError())),
         ]
-        # passed before failed before skipped before xpassed.
         assert summarize(results) == (
             '1 passed, 1 failed, 1 skipped, 1 xpassed'
         )

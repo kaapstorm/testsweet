@@ -29,8 +29,8 @@ class SkipDecorator:
         assert marker.reason == 'waiting on upstream'
         assert marker.condition is True
 
-    def called_with_if_true(self):
-        @skip(if_=True)
+    def called_with_condition_true(self):
+        @skip(condition=True)
         def f():
             pass
 
@@ -38,32 +38,33 @@ class SkipDecorator:
         assert marker.condition is True
         assert marker.reason is None
 
-    def called_with_if_false_still_attaches_marker(self):
-        @skip(if_=False)
+    def called_with_condition_false_still_attaches_marker(self):
+        @skip(condition=False)
         def f():
             pass
 
         marker = getattr(f, SKIP_MARKER)
         assert marker.condition is False
 
-    def called_with_if_truthy_value_coerced_to_bool(self):
-        @skip(if_='non-empty')
+    def called_with_condition_callable_stored_as_is(self):
+        called: list[int] = []
+
+        def cond() -> bool:
+            called.append(1)
+            return True
+
+        @skip(condition=cond)
         def f():
             pass
 
         marker = getattr(f, SKIP_MARKER)
-        assert marker.condition is True
+        # Decoration must not invoke the callable — that's deferred
+        # until the runner evaluates the marker.
+        assert called == []
+        assert marker.condition is cond
 
-    def called_with_if_falsy_value_coerced_to_bool(self):
-        @skip(if_=0)
-        def f():
-            pass
-
-        marker = getattr(f, SKIP_MARKER)
-        assert marker.condition is False
-
-    def called_with_reason_and_if_(self):
-        @skip(if_=True, reason='POSIX-only')
+    def called_with_reason_and_condition(self):
+        @skip(condition=True, reason='POSIX-only')
         def f():
             pass
 
@@ -74,6 +75,19 @@ class SkipDecorator:
     def stray_positional_raises_type_error(self):
         with catch_exceptions() as caught:
             skip('a', 'b')
+        assert len(caught) == 1
+        assert isinstance(caught[0], TypeError)
+        assert 'positional' in str(caught[0])
+
+    def positional_with_kwargs_raises_type_error(self):
+        # ``skip(func, reason='x')`` is a misuse — the bare-form
+        # detection requires no kwargs; otherwise the callable is just
+        # a stray positional.
+        def f():
+            pass
+
+        with catch_exceptions() as caught:
+            skip(f, reason='oops')
         assert len(caught) == 1
         assert isinstance(caught[0], TypeError)
 

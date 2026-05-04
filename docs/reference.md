@@ -68,14 +68,19 @@ from testsweet import skip, test
 
 Mark a test as skipped. Bare `@skip` always skips. Called as
 `@skip(reason='…')` it records a human-readable reason; called as
-`@skip(if_=condition)` it skips only when `condition` is truthy.
+`@skip(condition=expr)` it skips only when `expr` resolves truthy.
+`condition=` accepts a bool or a zero-arg callable; a callable is
+invoked by the runner at run time.
 
 ```python
 @test
-@skip(if_=sys.platform == 'win32', reason='posix-only')
+@skip(condition=sys.platform == 'win32', reason='posix-only')
 def uses_fork():
     ...
 ```
+
+When both `@skip` and `@xfail` are applied to the same test, `@skip`
+wins — the test is reported as skipped and its body is not run.
 
 
 ### `xfail`
@@ -85,10 +90,11 @@ from testsweet import test, xfail
 ```
 
 Mark a test as expected to fail. If the test raises, the runner
-reports `XFAIL`; if it unexpectedly passes, the runner reports
-`XPASS` and the run fails (testsweet's `@xfail` is strict).
+reports `xfailed`; if it unexpectedly passes, the runner reports
+`XPASSED` and the run fails (testsweet's `@xfail` is strict).
 
-Like `@skip`, `@xfail` accepts `reason=` and `if_=`:
+Like `@skip`, `@xfail` accepts `reason=` and `condition=` with
+identical semantics:
 
 ```python
 @test
@@ -117,41 +123,46 @@ def hits_a_real_server():
 ```
 
 
-Outcome sentinels
------------------
+Outcomes
+--------
 
-The runner constructs (does not raise) one of these classes and
-places it in the exception slot of the result tuple returned by
-`run()`. They subclass `Exception` so the result-tuple shape is
-unchanged. Tooling distinguishes them with `isinstance`.
+`run()` returns a `list[tuple[str, Outcome]]`. `Outcome` is a sum of
+the six frozen dataclasses below — values, not exceptions. Tooling
+dispatches with `match` or `isinstance`.
+
+```python
+from testsweet import (
+    Outcome, Passed, Failed, Errored, Skipped, XFailed, XPassed,
+)
+```
+
+### `Passed`
+
+The test ran and returned without raising. No fields.
+
+### `Failed`
+
+The test raised `AssertionError`. Carries the exception as `exc`.
+
+### `Errored`
+
+The test raised an exception other than `AssertionError`, or a
+callable `condition=` on `@skip`/`@xfail` raised while the runner
+was evaluating it. Carries the exception as `exc`.
 
 ### `Skipped`
 
-```python
-from testsweet import Skipped
-```
-
-Placed when an active `@skip` marker matched. Carries a `reason`
-attribute (may be `None`).
+An active `@skip` marker matched. Carries `reason: str | None`.
 
 ### `XFailed`
 
-```python
-from testsweet import XFailed
-```
-
-Placed when an `@xfail`-marked test raised the expected failure.
-Carries the underlying exception as `actual` and the marker's
-`reason`.
+An `@xfail`-marked test raised the expected failure. Carries the
+underlying exception as `actual` and the marker's `reason`.
 
 ### `XPassed`
 
-```python
-from testsweet import XPassed
-```
-
-Placed when an `@xfail`-marked test unexpectedly passed. Treated as
-a failure for exit-code purposes.
+An `@xfail`-marked test unexpectedly passed. Treated as a failure
+for exit-code purposes. Carries `reason`.
 
 
 Exception and warning capture
@@ -214,12 +225,8 @@ from testsweet import run
 Run the tests in `module`. If `names` is given, only run tests
 whose qualified names appear in the list. If `wrap_unit` is given,
 each test call is wrapped in `wrap_unit(name)`, which must return a
-context manager. Returns a list of `(name, exception_or_none)`
-tuples — `None` indicates a regular pass.
-
-The exception slot may also hold a `Skipped`, `XFailed`, or
-`XPassed` sentinel for tests marked with `@skip` or `@xfail`. Use
-`isinstance` to distinguish these from genuine failures.
+context manager. Returns a `list[tuple[str, Outcome]]` — see
+[Outcomes](#outcomes) for the variants.
 
 
 Plugins

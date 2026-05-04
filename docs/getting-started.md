@@ -234,21 +234,28 @@ def hits_broken_api():
     ...
 ```
 
-Use `if_=` to skip conditionally. The condition is evaluated at
-discovery time, so `if_=` accepts any boolean expression:
+Use `condition=` to skip conditionally. It accepts a bool or a
+zero-arg callable; a callable is resolved at run time, so a function
+reference does what you'd expect rather than being silently truthy:
 
 ```python
 import sys
 
 
 @test
-@skip(if_=sys.platform == 'win32', reason='posix-only')
+@skip(condition=sys.platform == 'win32', reason='posix-only')
 def uses_fork():
+    ...
+
+
+@test
+@skip(condition=feature_flag_enabled, reason='disabled in this env')
+def hits_feature():
     ...
 ```
 
 `@xfail` marks a test as expected to fail. If it raises, the runner
-reports `XFAIL` and treats it as a pass for exit-code purposes:
+reports `xfailed` and treats it as a pass for exit-code purposes:
 
 ```python
 from testsweet import test, xfail
@@ -261,15 +268,19 @@ def known_bug():
 ```
 
 Testsweet's `@xfail` is **strict**: if a test marked `@xfail`
-unexpectedly passes, the runner reports `XPASS` and the run fails.
+unexpectedly passes, the runner reports `XPASSED` and the run fails.
 Either remove the marker (the bug is fixed) or fix the test.
 
-`@xfail` also accepts `if_=` for conditional expected failure.
+`@xfail` also accepts `condition=` for conditional expected failure,
+with the same bool-or-callable semantics as `@skip`.
 
-The runner reports skip/xfail/xpass results by placing one of three
-sentinel classes — `Skipped`, `XFailed`, or `XPassed` — in the
-exception slot of the result tuple returned by `run()`. Tooling that
-inspects results can distinguish them with `isinstance`.
+When both `@skip` and `@xfail` are applied to the same test, `@skip`
+wins — the test is reported as skipped and its body is not run.
+
+The runner returns a `list[tuple[str, Outcome]]`, where `Outcome` is
+one of `Passed`, `Failed`, `Errored`, `Skipped`, `XFailed`, or
+`XPassed`. Tooling that inspects results can dispatch with `match`
+or `isinstance`.
 
 
 Tags

@@ -29,40 +29,35 @@ class XFailDecorator:
         assert marker.reason == 'see #42'
         assert marker.condition is True
 
-    def called_with_if_true(self):
-        @xfail(if_=True)
+    def called_with_condition_true(self):
+        @xfail(condition=True)
         def f():
             pass
 
         marker = getattr(f, XFAIL_MARKER)
         assert marker.condition is True
 
-    def called_with_if_false_still_attaches_marker(self):
-        @xfail(if_=False)
+    def called_with_condition_false_still_attaches_marker(self):
+        @xfail(condition=False)
         def f():
             pass
 
         marker = getattr(f, XFAIL_MARKER)
         assert marker.condition is False
 
-    def called_with_if_truthy_value_coerced_to_bool(self):
-        @xfail(if_='non-empty')
+    def called_with_condition_callable_stored_as_is(self):
+        def cond() -> bool:
+            return True
+
+        @xfail(condition=cond)
         def f():
             pass
 
         marker = getattr(f, XFAIL_MARKER)
-        assert marker.condition is True
+        assert marker.condition is cond
 
-    def called_with_if_falsy_value_coerced_to_bool(self):
-        @xfail(if_=0)
-        def f():
-            pass
-
-        marker = getattr(f, XFAIL_MARKER)
-        assert marker.condition is False
-
-    def called_with_reason_and_if_(self):
-        @xfail(if_=True, reason='windows-broken')
+    def called_with_reason_and_condition(self):
+        @xfail(condition=True, reason='windows-broken')
         def f():
             pass
 
@@ -75,6 +70,7 @@ class XFailDecorator:
             xfail('a', 'b')
         assert len(caught) == 1
         assert isinstance(caught[0], TypeError)
+        assert 'positional' in str(caught[0])
 
     def decorated_function_still_callable(self):
         @xfail
