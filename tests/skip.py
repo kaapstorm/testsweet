@@ -101,7 +101,7 @@ class SkipDecorator:
     def marker_dataclass_is_frozen(self):
         marker = SkipMarker(reason=None, condition=True)
         with catch_exceptions() as caught:
-            marker.reason = 'mutate'  # type: ignore[misc]  # ty: ignore[invalid-assignment]
+            marker.reason = 'mutate'  # ty: ignore[invalid-assignment]
         assert len(caught) == 1
 
 

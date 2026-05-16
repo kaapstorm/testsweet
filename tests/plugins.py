@@ -143,7 +143,7 @@ class LoadPlugins:
             value='fake_module',
             load=lambda: plugin,
         )
-        _plugins.entry_points = lambda group: [fake_ep]  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+        _plugins.entry_points = lambda group: [fake_ep]  # ty: ignore[invalid-assignment]
         loaded = load_plugins()
         assert loaded == [plugin]
 
@@ -160,7 +160,7 @@ class LoadPlugins:
             value='broken_module',
             load=lambda: bad,
         )
-        _plugins.entry_points = lambda group: [fake_ep]  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+        _plugins.entry_points = lambda group: [fake_ep]  # ty: ignore[invalid-assignment]
         with catch_exceptions() as excs:
             load_plugins()
         assert len(excs) == 1
@@ -169,7 +169,7 @@ class LoadPlugins:
 
     def empty_entry_points_yields_empty_list(self):
         from testsweet import _plugins
-        _plugins.entry_points = lambda group: []  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+        _plugins.entry_points = lambda group: []  # ty: ignore[invalid-assignment]
         assert load_plugins() == []
 
     def import_failure_raises_configuration_error(self):
@@ -183,7 +183,7 @@ class LoadPlugins:
             value='broken_module',
             load=raises,
         )
-        _plugins.entry_points = lambda group: [fake_ep]  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+        _plugins.entry_points = lambda group: [fake_ep]  # ty: ignore[invalid-assignment]
         with catch_exceptions() as excs:
             load_plugins()
         assert len(excs) == 1
