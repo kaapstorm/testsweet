@@ -2,7 +2,7 @@
 import pathlib
 import tomllib
 from dataclasses import dataclass, field
-
+from typing import cast
 
 _VALID_KEYS = frozenset({'include_paths', 'exclude_paths', 'test_files'})
 
@@ -71,6 +71,6 @@ def _to_string_tuple(value: object, key: str) -> tuple[str, ...]:
     err = f'tool.testsweet.discovery.{key} must be a list of strings'
     if not isinstance(value, list):
         raise ConfigurationError(err)
-    if not all(isinstance(item, str) for item in value):
+    if any(not isinstance(item, str) for item in value):
         raise ConfigurationError(err)
-    return tuple(value)
+    return cast(tuple[str, ...], tuple(value))

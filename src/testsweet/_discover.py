@@ -1,6 +1,6 @@
 """Discover ``@test``-marked callables and classes in a module."""
 from types import ModuleType
-from typing import Callable
+from typing import Any, Callable
 
 from testsweet._config import ConfigurationError
 from testsweet._markers import (
@@ -20,7 +20,7 @@ _MODIFIER_DECORATORS = {
 }
 
 
-def discover(module: ModuleType) -> list[Callable]:
+def discover(module: ModuleType) -> list[Any]:
     """Return module-level callables marked as test units.
 
     Order follows ``vars(module)`` (definition order on CPython 3.7+).

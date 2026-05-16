@@ -78,9 +78,10 @@ def _expand_unit(
             test_context = getattr(instance, '__test_context__', None)
             for method_name in eligible:
                 bound = getattr(instance, method_name)
+                qualname: str = bound.__qualname__
                 if test_context is not None:
                     bound = _wrap_in_cm(bound, test_context)
-                yield from _expand_callable(bound, bound.__qualname__)
+                yield from _expand_callable(bound, qualname)
     else:
         if keep is not None:
             tags: frozenset[str] = getattr(
