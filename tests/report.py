@@ -9,6 +9,9 @@ from testsweet._outcomes import (
     XFailed,
     XPassed,
 )
+
+Outcome = Passed | Failed | Errored | Skipped | XFailed | XPassed
+Results = list[tuple[str, Outcome]]
 from testsweet._report import (
     format_result_line,
     print_failure_detail,
@@ -115,7 +118,7 @@ class Summarize:
         assert summarize(results) == '2 passed'
 
     def mixed_outcomes(self):
-        results = [
+        results: Results = [
             ('p1', Passed()),
             ('p2', Passed()),
             ('f1', Failed(AssertionError('x'))),
@@ -137,7 +140,7 @@ class Summarize:
         # Insertion order in `results` doesn't matter — summarize
         # always emits passed → failed → error → skipped → xfailed
         # → xpassed.
-        results = [
+        results: Results = [
             ('xp1', XPassed()),
             ('p1', Passed()),
             ('s1', Skipped()),

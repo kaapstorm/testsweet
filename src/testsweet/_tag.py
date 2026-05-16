@@ -17,7 +17,7 @@ def tag(*names):
     new = frozenset(names)
 
     def decorator(func):
-        existing = getattr(func, TAGS_MARKER, frozenset())
+        existing: frozenset[str] = getattr(func, TAGS_MARKER, frozenset())
         setattr(func, TAGS_MARKER, existing | new)
         return func
 

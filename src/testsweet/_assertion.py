@@ -10,7 +10,7 @@ Failures (missing source, syntax errors, eval errors) silently yield
 ``None`` — the explainer is a nicety, not a correctness requirement.
 """
 import ast
-from types import TracebackType
+from types import FrameType, TracebackType
 
 
 def assertion_source(exc: AssertionError) -> str | None:
@@ -55,7 +55,7 @@ def explain_assertion(exc: AssertionError) -> str | None:
 
 def _locate_assert(
     exc: AssertionError,
-) -> tuple[object, str, ast.Assert] | None:
+) -> tuple[FrameType, str, ast.Assert] | None:
     tb = _innermost_tb(exc.__traceback__)
     if tb is None:
         return None
