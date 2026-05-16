@@ -30,7 +30,7 @@ class FailedOutcome:
     def is_frozen(self):
         out = Failed(AssertionError())
         with catch_exceptions() as caught:
-            out.exc = AssertionError()  # type: ignore[misc]
+            out.exc = AssertionError()  # type: ignore[misc]  # ty: ignore[invalid-assignment]
         assert len(caught) == 1
 
 
@@ -58,7 +58,7 @@ class SkippedOutcome:
     def is_frozen(self):
         s = Skipped('r')
         with catch_exceptions() as caught:
-            s.reason = 'mutate'  # type: ignore[misc]
+            s.reason = 'mutate'  # type: ignore[misc]  # ty: ignore[invalid-assignment]
         assert len(caught) == 1
 
 

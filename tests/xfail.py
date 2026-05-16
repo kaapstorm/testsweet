@@ -82,7 +82,7 @@ class XFailDecorator:
     def marker_dataclass_is_frozen(self):
         marker = XFailMarker(reason=None, condition=True)
         with catch_exceptions() as caught:
-            marker.reason = 'mutate'  # type: ignore[misc]
+            marker.reason = 'mutate'  # type: ignore[misc]  # ty: ignore[invalid-assignment]
         assert len(caught) == 1
 
     def marker_dataclass_has_no_strict_field(self):
