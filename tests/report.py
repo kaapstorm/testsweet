@@ -9,14 +9,14 @@ from testsweet._outcomes import (
     XFailed,
     XPassed,
 )
-
-Outcome = Passed | Failed | Errored | Skipped | XFailed | XPassed
-Results = list[tuple[str, Outcome]]
 from testsweet._report import (
     format_result_line,
     print_failure_detail,
     summarize,
 )
+
+Outcome = Passed | Failed | Errored | Skipped | XFailed | XPassed
+Results = list[tuple[str, Outcome]]
 
 
 def _capture(full_name, outcome):
