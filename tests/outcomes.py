@@ -4,6 +4,7 @@ from testsweet._outcomes import (
     Errored,
     Failed,
     Passed,
+    Result,
     Skipped,
     XFailed,
     XPassed,
@@ -90,3 +91,31 @@ class XPassedOutcome:
 
     def is_not_an_exception(self):
         assert not isinstance(XPassed(), Exception)
+
+
+@test
+class ResultRecord:
+    def carries_name_and_outcome(self):
+        r = Result('mod.t', Passed())
+        assert r.name == 'mod.t'
+        assert isinstance(r.outcome, Passed)
+
+    def capture_defaults_empty(self):
+        r = Result('mod.t', Passed())
+        assert r.stdout == ''
+        assert r.stderr == ''
+
+    def carries_captured_streams(self):
+        r = Result('mod.t', Passed(), stdout='hello\n', stderr='oops\n')
+        assert r.stdout == 'hello\n'
+        assert r.stderr == 'oops\n'
+
+    def is_frozen(self):
+        import dataclasses
+        r = Result('mod.t', Passed())
+        try:
+            r.name = 'other'  # ty: ignore[invalid-assignment]
+        except dataclasses.FrozenInstanceError:
+            pass
+        else:
+            raise AssertionError('Result should be frozen')

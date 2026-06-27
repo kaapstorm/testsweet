@@ -59,3 +59,19 @@ class XPassed:
 
 
 Outcome = Passed | Failed | Errored | Skipped | XFailed | XPassed
+
+
+@dataclass(frozen=True)
+class Result:
+    """A test unit's outcome plus any output it produced.
+
+    ``run()`` returns ``list[Result]``. ``stdout`` and ``stderr`` hold
+    the test's captured streams; they are empty unless the unit wrote
+    to those streams. Captured output is replayed only when the test
+    fails — see ``_report.print_failure_detail``.
+    """
+
+    name: str
+    outcome: Outcome
+    stdout: str = ''
+    stderr: str = ''
