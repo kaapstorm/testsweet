@@ -558,6 +558,13 @@ class Cli:
         assert 'Simple.first' not in result.stdout
         assert 'Simple.second' not in result.stdout
 
+    def blank_line_before_summary(self):
+        result = _run_cli('tests.fixtures.runner.all_pass')
+        assert result.returncode == 0
+        lines = result.stdout.splitlines()
+        # Summary is last; blank separator is second-to-last.
+        assert lines[-2] == ''
+
     def summary_includes_timing(self):
         result = _run_cli('tests.fixtures.runner.all_pass')
         assert result.returncode == 0
