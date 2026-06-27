@@ -5,6 +5,9 @@
 Start commands with `uv run ...` to run in the uv virtualenv.
 
 * Python: `uv run python ...`
+* Run tests: `uv run testsweet`
+* Run linter: `uv run ruff check`
+* Run type checker: `uv run ty check src/ tests/`
 
 ## File locations
 
