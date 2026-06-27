@@ -9,7 +9,7 @@ from types import ModuleType
 
 from testsweet._classify import _resolve_dotted
 from testsweet._config import DiscoveryConfig
-from testsweet._loaders import _load_path, _load_path_for_walk
+from testsweet._loaders import _load_path_for_walk
 from testsweet._walk import (
     _build_exclude_set,
     _resolve_include_paths,
@@ -73,7 +73,7 @@ def parse_target(
                     excluded=excluded,
                 )
             ]
-        return [(_load_path(target), None)]
+        return [(_load_path_for_walk(path), None)]
     return [_resolve_dotted(target)]
 
 

@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[Unreleased]
+------------
+
+### Bug Fixes
+
+- Fixed loading a test file by path (e.g. `testsweet path/to/tests.py`)
+  when the module uses relative imports.
+
+
 [0.2.1] (2026-06-27)
 --------------------
 
