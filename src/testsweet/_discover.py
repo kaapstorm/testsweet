@@ -20,7 +20,7 @@ _MODIFIER_DECORATORS = {
 }
 
 
-def discover(module: ModuleType) -> list[Any]:
+def discover(module: ModuleType) -> list[Callable[[], Any]]:
     """Return module-level callables marked as test units.
 
     Order follows ``vars(module)`` (definition order on CPython 3.7+).
@@ -31,7 +31,7 @@ def discover(module: ModuleType) -> list[Any]:
     ``@xfail``, ``@tag``) without ``@test``. Imported callables are
     not checked — they were decorated wherever they were defined.
     """
-    tests: list[Callable] = []
+    tests = []
     for name, value in vars(module).items():
         if not callable(value):
             continue

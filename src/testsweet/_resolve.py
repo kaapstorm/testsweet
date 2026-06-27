@@ -46,14 +46,12 @@ def resolve_units(
 
 
 def _expand_unit(
-    unit: Any,
+    unit: Callable[[], Any],
     method_filter: set[str] | None,
     keep: TagFilter | None,
 ) -> Iterator[tuple[str, Callable[[], Any]]]:
     if isinstance(unit, type):
-        class_tags: frozenset[str] = getattr(
-            unit, TAGS_MARKER, frozenset(),
-        )
+        class_tags: frozenset[str] = getattr(unit, TAGS_MARKER, frozenset())
         eligible = [
             method_name
             for method_name in _public_methods(unit)
@@ -102,7 +100,7 @@ def _wrap_in_cm(
     cm_factory: Callable[[], Any],
 ) -> Callable[..., Any]:
     @functools.wraps(call)
-    def wrapped(*args: Any, **kwargs: Any) -> Any:
+    def wrapped(*args, **kwargs):
         with cm_factory():
             return call(*args, **kwargs)
     return wrapped
