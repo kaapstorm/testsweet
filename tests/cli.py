@@ -40,7 +40,7 @@ class Cli:
             ),
             (
                 ('tests.fixtures.runner.class_simple',),
-                ['Simple.first ... ok', 'Simple.second ... ok'],
+                ['  first ... ok', '  second ... ok'],
             ),
             (
                 ('tests.fixtures.runner.params_simple',),
@@ -85,8 +85,8 @@ class Cli:
             'tests.fixtures.runner.class_simple.Simple.first',
         )
         assert result.returncode == 0
-        assert 'Simple.first ... ok' in result.stdout
-        assert 'Simple.second' not in result.stdout
+        assert '  first ... ok' in result.stdout
+        assert 'second' not in result.stdout
 
     def two_module_targets(self):
         result = _run_cli(
@@ -104,8 +104,8 @@ class Cli:
         )
         assert result.returncode == 0
         # Both methods, single grouped run — neither line repeats.
-        assert result.stdout.count('Simple.first ... ok') == 1
-        assert result.stdout.count('Simple.second ... ok') == 1
+        assert result.stdout.count('  first ... ok') == 1
+        assert result.stdout.count('  second ... ok') == 1
 
     def module_target_overrides_selector_for_same_module(self):
         result = _run_cli(
@@ -468,9 +468,9 @@ class Cli:
         assert result.returncode == 0
         # Class-level @tag('slow') on SlowSuite propagates to both
         # methods; lone_function carries @tag('slow') directly.
-        assert 'SlowSuite.alpha ... ok' in result.stdout
-        assert 'SlowSuite.beta ... ok' in result.stdout
-        assert 'lone_function ... ok' in result.stdout
+        assert '  alpha ... ok' in result.stdout
+        assert '  beta ... ok' in result.stdout
+        assert '  lone_function ... ok' in result.stdout
         assert 'untagged_function' not in result.stdout
         assert 'Untagged.delta' not in result.stdout
 
@@ -480,9 +480,9 @@ class Cli:
             'tests.fixtures.runner.tagged_class',
         )
         assert result.returncode == 0
-        assert 'untagged_function ... ok' in result.stdout
-        assert 'Untagged.delta ... ok' in result.stdout
-        assert 'SlowSuite.alpha' not in result.stdout
+        assert '  untagged_function ... ok' in result.stdout
+        assert '  delta ... ok' in result.stdout
+        assert 'tagged_class.SlowSuite' not in result.stdout
         assert 'lone_function' not in result.stdout
 
     def long_form_flags_work(self):
@@ -492,9 +492,9 @@ class Cli:
             'tests.fixtures.runner.tagged_class',
         )
         assert result.returncode == 0
-        assert 'Untagged.gamma ... ok' in result.stdout
+        assert '  gamma ... ok' in result.stdout
         # SlowSuite.beta has db but also slow (from class) — vetoed.
-        assert 'SlowSuite.beta' not in result.stdout
+        assert 'tagged_class.SlowSuite' not in result.stdout
 
     def repeated_include_is_or(self):
         result = _run_cli(
@@ -506,8 +506,8 @@ class Cli:
         # Untagged.delta drop out.
         assert 'untagged_function' not in result.stdout
         assert 'Untagged.delta' not in result.stdout
-        assert 'SlowSuite.alpha ... ok' in result.stdout
-        assert 'Untagged.gamma ... ok' in result.stdout
+        assert '  alpha ... ok' in result.stdout
+        assert '  gamma ... ok' in result.stdout
 
     def overlapping_include_and_exclude_errors(self):
         result = _run_cli('-t', 'slow', '-T', 'slow')
@@ -518,13 +518,50 @@ class Cli:
     def empty_filter_runs_everything(self):
         result = _run_cli('tests.fixtures.runner.tagged_class')
         assert result.returncode == 0
-        assert 'untagged_function ... ok' in result.stdout
-        assert 'SlowSuite.alpha ... ok' in result.stdout
+        assert '  untagged_function ... ok' in result.stdout
+        assert '  alpha ... ok' in result.stdout
 
     def non_assertion_error_has_no_explanation_block(self):
         result = _run_cli('tests.fixtures.runner.non_assertion_error')
         assert result.returncode == 1
         lines = result.stdout.splitlines()
-        # Trailing line is the summary; the traceback line is just before it.
         assert lines[-1] == '1 error'
-        assert lines[-2] == 'ValueError: boom'
+        assert 'ValueError: boom' in result.stdout
+
+    def module_header_printed_once_per_module(self):
+        result = _run_cli('tests.fixtures.runner.all_pass')
+        assert result.returncode == 0
+        lines = result.stdout.splitlines()
+        header_lines = [l for l in lines if l == 'tests.fixtures.runner.all_pass']
+        assert len(header_lines) == 1
+
+    def result_lines_are_indented(self):
+        result = _run_cli('tests.fixtures.runner.all_pass')
+        assert result.returncode == 0
+        assert '  passes_one ... ok' in result.stdout
+        assert '  passes_two ... ok' in result.stdout
+
+    def class_header_indented_under_module(self):
+        result = _run_cli('tests.fixtures.runner.class_simple')
+        assert result.returncode == 0
+        lines = result.stdout.splitlines()
+        # Module line unindented, class line 2-space indented
+        assert 'tests.fixtures.runner.class_simple' in lines
+        assert '  Simple' in lines
+
+    def class_method_result_line_four_space_indent(self):
+        result = _run_cli('tests.fixtures.runner.class_simple')
+        assert result.returncode == 0
+        assert '    first ... ok' in result.stdout
+        assert '    second ... ok' in result.stdout
+        # The class prefix must not appear on result lines
+        assert 'Simple.first' not in result.stdout
+        assert 'Simple.second' not in result.stdout
+
+    def two_modules_each_get_header(self):
+        result = _run_cli(
+            'tests.fixtures.runner.all_pass',
+            'tests.fixtures.runner.has_failure',
+        )
+        assert 'tests.fixtures.runner.all_pass' in result.stdout
+        assert 'tests.fixtures.runner.has_failure' in result.stdout

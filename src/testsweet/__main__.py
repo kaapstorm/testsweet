@@ -46,6 +46,15 @@ Options:
 """
 
 
+def _split_group(name: str) -> tuple[str | None, str]:
+    """Split 'ClassName.method[n]' into ('ClassName', 'method[n]').
+
+    Returns (None, name) for standalone functions with no class prefix.
+    """
+    dot = name.find('.')
+    return (name[:dot], name[dot + 1:]) if dot != -1 else (None, name)
+
+
 def _supports_color() -> bool:
     if not sys.stdout.isatty():
         return False
@@ -116,6 +125,8 @@ def main(argv: list[str]) -> int:
         real_failures: list[tuple[str, Outcome]] = []
         with session_for(plugins):
             groups = discover_targets(args.targets, config)
+            last_module: str | None = None
+            last_class: str | None = None
             for module, names in groups:
                 for name, outcome in run(
                     module,
@@ -124,7 +135,17 @@ def main(argv: list[str]) -> int:
                     keep=keep,
                 ):
                     full_name = f'{module.__name__}.{name}'
-                    print(format_result_line(full_name, outcome, use_color=use_color))
+                    class_name, short_name = _split_group(name)
+                    if module.__name__ != last_module:
+                        print(module.__name__)
+                        last_module = module.__name__
+                        last_class = None
+                    if class_name != last_class:
+                        if class_name is not None:
+                            print(f'  {class_name}')
+                        last_class = class_name
+                    indent = '    ' if class_name else '  '
+                    print(f'{indent}{format_result_line(short_name, outcome, use_color=use_color)}')
                     results.append((full_name, outcome))
                     if isinstance(outcome, (Failed, Errored, XPassed)):
                         real_failures.append((full_name, outcome))
