@@ -2,6 +2,7 @@ import argparse
 import os
 import pathlib
 import sys
+import time
 
 from testsweet._config import load_config
 from testsweet._loaders import scoped_sys_path
@@ -123,6 +124,7 @@ def main(argv: list[str]) -> int:
         use_color = _supports_color()
         results: list[tuple[str, Outcome]] = []
         real_failures: list[tuple[str, Outcome]] = []
+        start = time.monotonic()
         with session_for(plugins):
             groups = discover_targets(args.targets, config)
             last_module: str | None = None
@@ -149,9 +151,10 @@ def main(argv: list[str]) -> int:
                     results.append((full_name, outcome))
                     if isinstance(outcome, (Failed, Errored, XPassed)):
                         real_failures.append((full_name, outcome))
+        elapsed = time.monotonic() - start
         for full_name, outcome in real_failures:
             print_failure_detail(full_name, outcome)
-        print(summarize(results, use_color=use_color))
+        print(summarize(results, use_color=use_color, elapsed=elapsed))
         return 1 if real_failures else 0
 
 

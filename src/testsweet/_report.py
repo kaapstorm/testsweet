@@ -142,6 +142,7 @@ _SUMMARY_ORDER = (
 def summarize(
     results: Iterable[tuple[str, Outcome]],
     use_color: bool = False,
+    elapsed: float | None = None,
 ) -> str:
     """One-line summary of result counts."""
     counts: collections.Counter = collections.Counter()
@@ -149,11 +150,12 @@ def summarize(
     for _name, outcome in results:
         counts[_outcome_key(outcome)] += 1
         total += 1
+    timing = f' in {elapsed:.2f}s' if elapsed is not None else ''
     if total == 0:
-        return '0 tests'
+        return f'0 tests{timing}'
     parts = [
         _c(f'{counts[key]} {label}', color, use_color)
         for key, label, color in _SUMMARY_ORDER
         if counts.get(key)
     ]
-    return ', '.join(parts)
+    return f'{", ".join(parts)}{timing}'
