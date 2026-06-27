@@ -1,4 +1,5 @@
 import argparse
+import os
 import pathlib
 import sys
 
@@ -43,6 +44,22 @@ Options:
                       iff it matches some --tag (or none was given)
                       AND has no --exclude-tag.
 """
+
+
+def _supports_color() -> bool:
+    if not sys.stdout.isatty():
+        return False
+    if os.environ.get('NO_COLOR'):
+        return False
+    if sys.platform == 'win32':
+        # VT processing is auto-enabled from Python 3.12+. On older
+        # versions, accept Windows Terminal (WT_SESSION) and ANSICON.
+        return (
+            sys.version_info >= (3, 12)
+            or bool(os.environ.get('WT_SESSION'))
+            or bool(os.environ.get('ANSICON'))
+        )
+    return True
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -94,6 +111,7 @@ def main(argv: list[str]) -> int:
         config = load_config(pathlib.Path.cwd())
         plugins = load_plugins()
         wrap_unit = unit_wrapper(plugins)
+        use_color = _supports_color()
         results: list[tuple[str, Outcome]] = []
         real_failures: list[tuple[str, Outcome]] = []
         with session_for(plugins):
@@ -106,13 +124,13 @@ def main(argv: list[str]) -> int:
                     keep=keep,
                 ):
                     full_name = f'{module.__name__}.{name}'
-                    print(format_result_line(full_name, outcome))
+                    print(format_result_line(full_name, outcome, use_color=use_color))
                     results.append((full_name, outcome))
                     if isinstance(outcome, (Failed, Errored, XPassed)):
                         real_failures.append((full_name, outcome))
         for full_name, outcome in real_failures:
             print_failure_detail(full_name, outcome)
-        print(summarize(results))
+        print(summarize(results, use_color=use_color))
         return 1 if real_failures else 0
 
 
