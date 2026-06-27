@@ -2,9 +2,10 @@
 
 Reads the source file referenced by the failing assertion's traceback,
 locates the ``assert`` AST node, and re-evaluates its sub-expressions
-in the original frame to show their values. ``Call`` sub-expressions
-are deliberately skipped: re-evaluating a call would fire its side
-effects a second time.
+in the original frame to show their values. Sub-expressions that can
+fire side effects when re-evaluated are deliberately skipped: calls,
+attribute access (``__getattr__``/properties), and subscripting
+(``__getitem__``).
 
 Failures (missing source, syntax errors, eval errors) silently yield
 ``None`` — the explainer is a nicety, not a correctness requirement.
@@ -30,9 +31,16 @@ def explain_assertion(exc: AssertionError) -> str | None:
     lines = []
     seen: set[str] = set()
     for sub in _sub_exprs(assert_node.test):
-        if isinstance(sub, (ast.Constant, ast.Call)):
-            # Skip constants (no information) and calls (re-evaluating
-            # would fire side effects a second time).
+        if isinstance(sub, (
+            ast.Constant,
+            ast.Call,
+            ast.Attribute,
+            ast.Subscript,
+        )):
+            # Skip constants (no information) and anything that can
+            # fire side effects when re-evaluated: calls, attribute
+            # access (``__getattr__``/properties), and subscripting
+            # (``__getitem__``).
             continue
         src = ast.unparse(sub)
         if src in seen:
