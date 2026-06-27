@@ -154,6 +154,7 @@ def main(argv: list[str]) -> int:
         elapsed = time.monotonic() - start
         for full_name, outcome in real_failures:
             print_failure_detail(full_name, outcome)
+        print()
         print(summarize(results, use_color=use_color, elapsed=elapsed))
         return 1 if real_failures else 0
 
