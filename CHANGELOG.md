@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+### Improvements
+
+- Added tests and documentation for the assertion explainer.
+
+
 [0.2.2] (2026-06-27)
 --------------------
 
