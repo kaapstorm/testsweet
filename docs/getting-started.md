@@ -138,46 +138,6 @@ Subclasses can chain a parent's `__test_context__` via
 `super().__test_context__()`.
 
 
-Plugins
--------
-
-Testsweet discovers plugins via the `testsweet.plugins` entry-point
-group. A plugin is any module exposing both of:
-
-* `session()` — a context manager that wraps the entire test run.
-  Use for one-time setup/teardown (e.g. provisioning a test database).
-* `unit(name)` — a context manager that wraps each test call. Use for
-  per-test isolation.
-
-Both are required. If a plugin doesn't need one, define a no-op:
-
-```python
-from contextlib import contextmanager
-
-
-@contextmanager
-def session():
-    # ... real setup/teardown ...
-    yield
-
-
-@contextmanager
-def unit(name):
-    yield
-```
-
-Plugins are installed as ordinary Python distributions and register
-themselves in their own `pyproject.toml`:
-
-```toml
-[project.entry-points."testsweet.plugins"]
-django = "testsweet_django"
-```
-
-See [testsweet-django](https://github.com/kaapstrom/testsweet-django)
-for a working example.
-
-
 Parametrized tests
 ------------------
 
@@ -374,3 +334,43 @@ test_files = ["test_*.py", "*_test.py"]
 ```
 
 See the [reference](reference.md) for the full list of public APIs.
+
+
+Plugins
+-------
+
+Testsweet discovers plugins via the `testsweet.plugins` entry-point
+group. A plugin is any module exposing both of:
+
+* `session()` — a context manager that wraps the entire test run.
+  Use for one-time setup/teardown (e.g. provisioning a test database).
+* `unit(name)` — a context manager that wraps each test call. Use for
+  per-test isolation.
+
+Both are required. If a plugin doesn't need one, define a no-op:
+
+```python
+from contextlib import contextmanager
+
+
+@contextmanager
+def session():
+    # ... real setup/teardown ...
+    yield
+
+
+@contextmanager
+def unit(name):
+    yield
+```
+
+Plugins are installed as ordinary Python distributions and register
+themselves in their own `pyproject.toml`:
+
+```toml
+[project.entry-points."testsweet.plugins"]
+django = "testsweet_django"
+```
+
+See [testsweet-django](https://github.com/kaapstrom/testsweet-django)
+for a working example.
