@@ -71,6 +71,9 @@ explicit = true
 [tool.ruff]
 line-length = 79
 
+[tool.ruff.lint]
+select = ["E", "F"]
+
 [tool.ruff.format]
 quote-style = "single"
 
