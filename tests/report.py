@@ -161,6 +161,26 @@ class SummarizeColor:
 
 
 @test
+class SummarizeTiming:
+    def elapsed_appended_to_summary(self):
+        results = [('a', Passed())]
+        out = summarize(results, elapsed=1.5)
+        assert out == '1 passed in 1.50s'
+
+    def elapsed_zero(self):
+        out = summarize([('a', Passed())], elapsed=0.0)
+        assert out == '1 passed in 0.00s'
+
+    def no_elapsed_omits_timing(self):
+        out = summarize([('a', Passed())])
+        assert 'in' not in out
+
+    def elapsed_on_empty_results(self):
+        out = summarize([], elapsed=0.5)
+        assert out == '0 tests in 0.50s'
+
+
+@test
 class Summarize:
     def empty_results(self):
         assert summarize([]) == '0 tests'

@@ -525,7 +525,7 @@ class Cli:
         result = _run_cli('tests.fixtures.runner.non_assertion_error')
         assert result.returncode == 1
         lines = result.stdout.splitlines()
-        assert lines[-1] == '1 error'
+        assert lines[-1].startswith('1 error')
         assert 'ValueError: boom' in result.stdout
 
     def module_header_printed_once_per_module(self):
@@ -557,6 +557,13 @@ class Cli:
         # The class prefix must not appear on result lines
         assert 'Simple.first' not in result.stdout
         assert 'Simple.second' not in result.stdout
+
+    def summary_includes_timing(self):
+        result = _run_cli('tests.fixtures.runner.all_pass')
+        assert result.returncode == 0
+        lines = result.stdout.splitlines()
+        assert lines[-1].startswith('2 passed in ')
+        assert lines[-1].endswith('s')
 
     def two_modules_each_get_header(self):
         result = _run_cli(
