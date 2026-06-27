@@ -1,6 +1,21 @@
 Changelog
 =========
 
+[0.2.1] (2026-06-27)
+--------------------
+
+### Improvements
+
+- Switched type checking from mypy to ty
+- Extended settings for linting and tightened type hints
+- Added "authors" and "keywords" to `pyproject.toml`
+- Tweaked CHANGELOG.md formatting
+- Automated GitHub releases
+
+
+[0.2.1]: https://github.com/kaapstorm/testsweet/releases/tag/v0.2.1
+
+
 [0.2.0] (2026-05-04)
 --------------------
 
