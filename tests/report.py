@@ -109,6 +109,58 @@ class PrintFailureDetail:
 
 
 @test
+class FormatResultLineColor:
+    def pass_has_green_ok(self):
+        line = format_result_line('mod.t', Passed(), use_color=True)
+        assert '\x1b[32m' in line
+        assert 'ok' in line
+
+    def fail_has_red_status(self):
+        line = format_result_line('mod.t', Failed(AssertionError('x')), use_color=True)
+        assert '\x1b[' in line
+        assert 'FAIL' in line
+
+    def error_has_red_status(self):
+        line = format_result_line('mod.t', Errored(TypeError('x')), use_color=True)
+        assert '\x1b[' in line
+        assert 'ERROR' in line
+
+    def skipped_has_yellow_status(self):
+        line = format_result_line('mod.t', Skipped(), use_color=True)
+        assert '\x1b[33m' in line
+        assert 'skipped' in line
+
+    def xfailed_has_yellow_status(self):
+        line = format_result_line('mod.t', XFailed(ValueError('x')), use_color=True)
+        assert '\x1b[33m' in line
+        assert 'xfailed' in line
+
+    def xpassed_has_magenta_status(self):
+        line = format_result_line('mod.t', XPassed(), use_color=True)
+        assert '\x1b[' in line
+        assert 'XPASSED' in line
+
+    def no_color_by_default(self):
+        line = format_result_line('mod.t', Passed())
+        assert '\x1b[' not in line
+
+
+@test
+class SummarizeColor:
+    def passed_count_is_green(self):
+        result = summarize([('a', Passed())], use_color=True)
+        assert '\x1b[32m' in result
+
+    def failed_count_is_red(self):
+        result = summarize([('a', Failed(AssertionError()))], use_color=True)
+        assert '\x1b[1;31m' in result
+
+    def no_color_by_default(self):
+        result = summarize([('a', Passed())])
+        assert '\x1b[' not in result
+
+
+@test
 class Summarize:
     def empty_results(self):
         assert summarize([]) == '0 tests'

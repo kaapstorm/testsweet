@@ -19,6 +19,16 @@ from testsweet._outcomes import (
     XPassed,
 )
 
+_GREEN = '32'
+_YELLOW = '33'
+_RED = '31'
+_BOLD_RED = '1;31'
+_MAGENTA = '35'
+
+
+def _c(text: str, code: str, enabled: bool) -> str:
+    return f'\033[{code}m{text}\033[0m' if enabled else text
+
 
 _XPASS_DETAIL = (
     'Test was marked @xfail but passed. '
@@ -30,24 +40,34 @@ def _suffix(reason: str | None) -> str:
     return f': {reason}' if reason else ''
 
 
-def format_result_line(full_name: str, outcome: Outcome) -> str:
+def format_result_line(
+    full_name: str,
+    outcome: Outcome,
+    use_color: bool = False,
+) -> str:
     """One-line summary suitable for streaming output."""
     match outcome:
         case Passed():
-            return f'{full_name} ... ok'
+            status = _c('ok', _GREEN, use_color)
+            return f'{full_name} ... {status}'
         case Skipped(reason=reason):
-            return f'{full_name} ... skipped{_suffix(reason)}'
+            status = _c(f'skipped{_suffix(reason)}', _YELLOW, use_color)
+            return f'{full_name} ... {status}'
         case XFailed(reason=reason):
-            return f'{full_name} ... xfailed{_suffix(reason)}'
+            status = _c(f'xfailed{_suffix(reason)}', _YELLOW, use_color)
+            return f'{full_name} ... {status}'
         case XPassed(reason=reason):
-            return f'{full_name} ... XPASSED{_suffix(reason)}'
+            status = _c(f'XPASSED{_suffix(reason)}', _MAGENTA, use_color)
+            return f'{full_name} ... {status}'
         case Failed(exc=exc):
             detail = str(exc) or assertion_source(exc) or ''
-            return f'{full_name} ... FAIL: AssertionError: {detail}'
+            status = _c(f'FAIL: AssertionError: {detail}', _BOLD_RED, use_color)
+            return f'{full_name} ... {status}'
         case Errored(exc=exc):
-            return (
-                f'{full_name} ... ERROR: {type(exc).__name__}: {exc}'
+            status = _c(
+                f'ERROR: {type(exc).__name__}: {exc}', _RED, use_color,
             )
+            return f'{full_name} ... {status}'
 
 
 def print_failure_detail(
@@ -110,16 +130,19 @@ def _outcome_key(outcome: Outcome) -> str:
 
 
 _SUMMARY_ORDER = (
-    ('passed', 'passed'),
-    ('failed', 'failed'),
-    ('errored', 'error'),
-    ('skipped', 'skipped'),
-    ('xfailed', 'xfailed'),
-    ('xpassed', 'xpassed'),
+    ('passed', 'passed', _GREEN),
+    ('failed', 'failed', _BOLD_RED),
+    ('errored', 'error', _RED),
+    ('skipped', 'skipped', _YELLOW),
+    ('xfailed', 'xfailed', _YELLOW),
+    ('xpassed', 'xpassed', _MAGENTA),
 )
 
 
-def summarize(results: Iterable[tuple[str, Outcome]]) -> str:
+def summarize(
+    results: Iterable[tuple[str, Outcome]],
+    use_color: bool = False,
+) -> str:
     """One-line summary of result counts."""
     counts: collections.Counter = collections.Counter()
     total = 0
@@ -129,8 +152,8 @@ def summarize(results: Iterable[tuple[str, Outcome]]) -> str:
     if total == 0:
         return '0 tests'
     parts = [
-        f'{counts[key]} {label}'
-        for key, label in _SUMMARY_ORDER
+        _c(f'{counts[key]} {label}', color, use_color)
+        for key, label, color in _SUMMARY_ORDER
         if counts.get(key)
     ]
     return ', '.join(parts)
