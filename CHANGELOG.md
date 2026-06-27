@@ -8,6 +8,8 @@ Changelog
 
 - Fixed loading a test file by path (e.g. `testsweet path/to/tests.py`)
   when the module uses relative imports.
+- Fixed resolving dotted targets (e.g. `testsweet tests.foo`) when run
+  via the installed `testsweet` console script.
 
 
 [0.2.1] (2026-06-27)
