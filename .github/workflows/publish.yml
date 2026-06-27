@@ -1,4 +1,4 @@
-name: Publish
+name: publish
 on:
   push:
     tags: ['v*']
@@ -15,7 +15,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: dist, path: dist/ }
 
-  publish-testpypi:
+  testpypi:
     needs: build
     runs-on: ubuntu-latest
     environment: testpypi
@@ -28,8 +28,8 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
 
-  publish-pypi:
-    needs: publish-testpypi
+  pypi:
+    needs: testpypi
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -40,7 +40,7 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
 
   github-release:
-    needs: publish-pypi
+    needs: pypi
     runs-on: ubuntu-latest
     permissions:
       contents: write
