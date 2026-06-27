@@ -168,6 +168,57 @@ it consumed at run time, use `@params_lazy` instead.
 > functions or methods you want discovered.
 
 
+Getting the most from explanations
+----------------------------------
+
+When an `assert` fails, Testsweet prints the value of each operand in
+the failing expression, so you can often see what went wrong without
+reaching for a debugger:
+
+```python
+@test
+def counts_items():
+    items = [1, 2]
+    count = len(items)
+    assert count == 3
+```
+
+```
+======================================================================
+FAIL: tests.example.counts_items
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  ...
+AssertionError
+  count = 2
+```
+
+To show those values, Testsweet re-evaluates the operands of the failing
+expression. Running code a second time can have side effects, so to
+make sure that building the explanation never changes how your program
+behaves, Testsweet deliberately **skips function calls, attribute
+access, and subscripts**. Constant literals are skipped too, since they
+carry no information.
+
+That means an assertion built directly out of calls, attributes, or
+subscripts has nothing left to explain:
+
+```python
+assert response.json()['status'] == 200   # no operand values shown
+```
+
+Bind the interesting values to plain local variables and assert on
+those instead:
+
+```python
+status = response.json()['status']
+assert status == 200                      # explanation: status = 404
+```
+
+This is good practice anyway: it keeps each assertion to a single idea
+and makes the failure output read like the question you were asking.
+
+
 Skipping and expected failures
 ------------------------------
 
