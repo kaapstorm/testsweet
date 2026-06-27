@@ -95,12 +95,18 @@ def _print_traceback_block(
 
 def _outcome_key(outcome: Outcome) -> str:
     match outcome:
-        case Passed(): return 'passed'
-        case Failed(): return 'failed'
-        case Errored(): return 'errored'
-        case Skipped(): return 'skipped'
-        case XFailed(): return 'xfailed'
-        case XPassed(): return 'xpassed'
+        case Passed():
+            return 'passed'
+        case Failed():
+            return 'failed'
+        case Errored():
+            return 'errored'
+        case Skipped():
+            return 'skipped'
+        case XFailed():
+            return 'xfailed'
+        case XPassed():
+            return 'xpassed'
 
 
 _SUMMARY_ORDER = (

@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from testsweet import catch_exceptions, discover, run, test
 from testsweet._class_helpers import _public_methods
 from testsweet._markers import TEST_MARKER
-from testsweet import params
 from testsweet._outcomes import (
     Errored,
     Failed,
