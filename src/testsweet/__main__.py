@@ -84,6 +84,13 @@ def main(argv: list[str]) -> int:
         if (include or exclude) else None
     )
     with scoped_sys_path():
+        # `python -m testsweet` prepends the cwd to sys.path, but the
+        # installed console script does not (sys.path[0] is its own bin
+        # directory). Put the cwd on the path so dotted targets resolve
+        # against the project the same way under both invocations.
+        cwd = str(pathlib.Path.cwd())
+        if cwd not in sys.path:
+            sys.path.insert(0, cwd)
         config = load_config(pathlib.Path.cwd())
         plugins = load_plugins()
         wrap_unit = unit_wrapper(plugins)

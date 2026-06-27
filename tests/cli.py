@@ -394,6 +394,19 @@ class Cli:
         assert result.returncode == 0
         assert result.stdout.startswith('Usage: testsweet')
 
+    def installed_entry_point_resolves_dotted_target(self):
+        script = pathlib.Path(sys.executable).with_name('testsweet')
+        if not script.exists():
+            return  # not an installed environment; skip silently
+        result = subprocess.run(
+            [str(script), 'tests.fixtures.runner.all_pass'],
+            capture_output=True,
+            text=True,
+            cwd=_REPO_ROOT,
+        )
+        assert result.returncode == 0, result.stderr
+        assert 'passes_one ... ok' in result.stdout
+
     @params([(('-h',),), (('--help',),)])
     def help_flag_prints_usage_and_exits_zero(self, args):
         result = _run_cli(*args)
