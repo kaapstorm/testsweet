@@ -57,28 +57,61 @@ def _call_fail(counter: Callable[[], bool]) -> None:
     assert counter()
 
 
-class _RaiseOnSecondAccess:
-    """Returns its value on first ``.value`` access, then raises.
-
-    Lets a sub-expression succeed when the real ``assert`` runs but
-    fail when the explainer re-evaluates it.
-    """
+class _CountingAttr:
+    """Counts ``.value`` accesses so a test can prove non-re-evaluation."""
 
     def __init__(self, value: object) -> None:
         self._value = value
-        self._accessed = False
+        self.accesses = 0
 
     @property
     def value(self) -> object:
-        if self._accessed:
-            raise RuntimeError('second access')
-        self._accessed = True
+        self.accesses += 1
         return self._value
 
 
-def _reeval_raises_fail(box: _RaiseOnSecondAccess) -> None:
-    x = 5
-    assert x == box.value
+def _attr_fail(obj: _CountingAttr) -> None:
+    assert obj.value == 99
+
+
+class _CountingItem:
+    """Counts ``__getitem__`` calls so a test can prove non-re-evaluation."""
+
+    def __init__(self, value: object) -> None:
+        self._value = value
+        self.gets = 0
+
+    def __getitem__(self, key: object) -> object:
+        self.gets += 1
+        return self._value
+
+
+def _subscript_fail(box: _CountingItem) -> None:
+    assert box['key'] == 99
+
+
+class _AddRaisesOnSecond:
+    """Adds normally once, then raises — to trip the explainer's re-eval.
+
+    Unlike attribute/subscript access, a ``BinOp`` sub-expression is
+    still re-evaluated, so this exercises the best-effort ``except``.
+    """
+
+    def __init__(self, value: int) -> None:
+        self._value = value
+        self._added = False
+
+    def __add__(self, other: int) -> int:
+        if self._added:
+            raise RuntimeError('second add')
+        self._added = True
+        return self._value + other
+
+
+def _binop_reeval_raises_fail(base: _AddRaisesOnSecond) -> None:
+    extra = 1
+    expected = 5
+    assert expected == base + extra
 
 
 def _missing_source_error() -> AssertionError | None:
@@ -158,14 +191,35 @@ class ExplainAssertion:
         assert calls == [1]
         assert result is None
 
-    def survives_a_sub_expression_that_raises_on_reeval(self):
-        # box.value raises the second time it is read (during explain);
-        # the explainer swallows that and still reports the operand it
-        # could evaluate.
-        box = _RaiseOnSecondAccess(6)
-        exc = _capture(lambda: _reeval_raises_fail(box))
+    def does_not_reevaluate_attribute_access(self):
+        # Attribute access can fire __getattr__/property side effects,
+        # so it is skipped. obj.value was read once (in the real
+        # assert) and not again.
+        obj = _CountingAttr(1)
+        exc = _capture(lambda: _attr_fail(obj))
         assert exc is not None
-        assert explain_assertion(exc) == '  x = 5'
+        result = explain_assertion(exc)
+        assert obj.accesses == 1
+        assert result is None
+
+    def does_not_reevaluate_subscript_access(self):
+        # Subscripting can fire __getitem__ side effects, so it is
+        # skipped. box['key'] was read once (in the real assert).
+        box = _CountingItem(1)
+        exc = _capture(lambda: _subscript_fail(box))
+        assert exc is not None
+        result = explain_assertion(exc)
+        assert box.gets == 1
+        assert result is None
+
+    def survives_a_sub_expression_that_raises_on_reeval(self):
+        # A BinOp is still re-evaluated; base + extra raises the second
+        # time (during explain). The explainer swallows that and still
+        # reports the operand it could evaluate.
+        base = _AddRaisesOnSecond(2)
+        exc = _capture(lambda: _binop_reeval_raises_fail(base))
+        assert exc is not None
+        assert explain_assertion(exc) == '  expected = 5'
 
     def returns_none_when_nothing_is_informative(self):
         # All sub-expressions are calls/constants, so there is nothing
