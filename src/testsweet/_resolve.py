@@ -12,7 +12,7 @@ from types import ModuleType
 from typing import Any, Callable, Iterator
 
 from testsweet._class_helpers import _public_methods
-from testsweet._discover import discover
+from testsweet._discover import TestUnit, discover
 from testsweet._markers import TAGS_MARKER
 from testsweet._params import PARAMS_MARKER
 
@@ -46,7 +46,7 @@ def resolve_units(
 
 
 def _expand_unit(
-    unit: Callable[[], Any],
+    unit: TestUnit,
     method_filter: set[str] | None,
     keep: TagFilter | None,
 ) -> Iterator[tuple[str, Callable[[], Any]]]:
@@ -125,7 +125,7 @@ def _expand_callable(
 
 
 def _build_plan(
-    units: list[Any],
+    units: list[TestUnit],
     names: list[str],
 ) -> dict[str, set[str] | None]:
     """Map unit qualnames to method-name filters.

@@ -1,6 +1,6 @@
 """Discover ``@test``-marked callables and classes in a module."""
 from types import ModuleType
-from typing import Any, Callable
+from typing import Protocol
 
 from testsweet._config import ConfigurationError
 from testsweet._markers import (
@@ -12,6 +12,13 @@ from testsweet._markers import (
 from testsweet._params import PARAMS_MARKER
 
 
+class TestUnit(Protocol):
+    __name__: str
+    __qualname__: str
+
+    def __call__(self, *args, **kwargs): ...
+
+
 _MODIFIER_DECORATORS = {
     PARAMS_MARKER: '@params',
     SKIP_MARKER: '@skip',
@@ -20,7 +27,7 @@ _MODIFIER_DECORATORS = {
 }
 
 
-def discover(module: ModuleType) -> list[Callable[[], Any]]:
+def discover(module: ModuleType) -> list[TestUnit]:
     """Return module-level callables marked as test units.
 
     Order follows ``vars(module)`` (definition order on CPython 3.7+).
