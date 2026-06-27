@@ -2,11 +2,23 @@
 name = "testsweet"
 version = "0.2.0"
 description = "Python testing for humans"
-readme = "README.md"
-requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-dependencies = []
+authors = [
+    { name = "Norman Hooper", email = "kaapstorm@gmail.com" },
+]
+keywords = [
+    "testing",
+    "test",
+    "test-framework",
+    "test-runner",
+    "unit-testing",
+    "test-discovery",
+    "tdd",
+    "pytest",
+    "unittest",
+    "pythonic",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -17,6 +29,9 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Testing",
 ]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
 
 [project.scripts]
 testsweet = "testsweet.__main__:cli"
