@@ -1,8 +1,8 @@
 Changelog
 =========
 
-[Unreleased]
-------------
+[0.2.2] (2026-06-27)
+--------------------
 
 ### Bug Fixes
 
@@ -10,6 +10,8 @@ Changelog
   when the module uses relative imports.
 - Fixed resolving dotted targets (e.g. `testsweet tests.foo`) when run
   via the installed `testsweet` console script.
+
+[0.2.2]: https://github.com/kaapstorm/testsweet/releases/tag/v0.2.2
 
 
 [0.2.1] (2026-06-27)
