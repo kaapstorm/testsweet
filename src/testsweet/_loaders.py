@@ -39,10 +39,6 @@ def _exec_module_from_path(path: pathlib.Path) -> ModuleType:
     return module
 
 
-def _load_path(target: str) -> ModuleType:
-    return _exec_module_from_path(pathlib.Path(target).resolve())
-
-
 def _load_path_for_walk(path: pathlib.Path) -> ModuleType:
     info = _dotted_name_for_path(path)
     if info is None:

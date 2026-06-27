@@ -65,6 +65,21 @@ class ParseTarget:
         assert module is expected
         assert names == expected_names
 
+    @params([
+        ('tests/fixtures/runner/uses_relative_import.py',),
+        ('./tests/fixtures/runner/uses_relative_import.py',),
+        (str((_FIXTURES / 'uses_relative_import.py').resolve()),),
+    ])
+    def file_path_with_relative_import(self, target):
+        # A file path to a module inside a package must be loaded with
+        # package context so its relative imports resolve, the same way
+        # the equivalent dotted name does.
+        result = parse_target(target)
+        assert len(result) == 1
+        module, names = result[0]
+        assert names is None
+        assert hasattr(module, 'uses_rel')
+
     def dotted_too_many_segments(self):
         with catch_exceptions() as excs:
             parse_target(
