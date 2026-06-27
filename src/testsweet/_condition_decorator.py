@@ -13,7 +13,8 @@ Condition = Union[bool, Callable[[], bool]]
 
 
 def make_condition_decorator(decorator_name, marker_cls, attr):
-    """Build a decorator that attaches ``marker_cls(reason, condition)`` under ``attr``.
+    """Build a decorator that attaches ``marker_cls(reason, condition)``
+    under ``attr``.
 
     The returned decorator supports the bare form (``@dec``) and the
     called form (``@dec(reason='…')``, ``@dec(condition=expr)``,
