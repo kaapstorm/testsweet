@@ -165,12 +165,20 @@ class FormatResultLineColor:
         assert 'ok' in line
 
     def fail_has_red_status(self):
-        line = format_result_line('mod.t', Failed(AssertionError('x')), use_color=True)
+        line = format_result_line(
+            'mod.t',
+            Failed(AssertionError('x')),
+            use_color=True,
+        )
         assert '\x1b[' in line
         assert 'FAIL' in line
 
     def error_has_red_status(self):
-        line = format_result_line('mod.t', Errored(TypeError('x')), use_color=True)
+        line = format_result_line(
+            'mod.t',
+            Errored(TypeError('x')),
+            use_color=True,
+        )
         assert '\x1b[' in line
         assert 'ERROR' in line
 
@@ -180,7 +188,11 @@ class FormatResultLineColor:
         assert 'skipped' in line
 
     def xfailed_has_yellow_status(self):
-        line = format_result_line('mod.t', XFailed(ValueError('x')), use_color=True)
+        line = format_result_line(
+            'mod.t',
+            XFailed(ValueError('x')),
+            use_color=True,
+        )
         assert '\x1b[33m' in line
         assert 'xfailed' in line
 

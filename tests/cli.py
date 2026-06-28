@@ -532,7 +532,10 @@ class Cli:
         result = _run_cli('tests.fixtures.runner.all_pass')
         assert result.returncode == 0
         lines = result.stdout.splitlines()
-        header_lines = [l for l in lines if l == 'tests.fixtures.runner.all_pass']
+        header_lines = [
+            line for line in lines
+            if line == 'tests.fixtures.runner.all_pass'
+        ]
         assert len(header_lines) == 1
 
     def result_lines_are_indented(self):
