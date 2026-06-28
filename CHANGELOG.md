@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Unreleased
-----------
+[0.2.3] (2026-06-28)
+--------------------
 
 ### Improvements
 
@@ -12,6 +12,8 @@ Unreleased
 - Included timing in the summary.
 - Captured each test's stdout and stderr, replaying them in the
   failure detail block.
+
+[0.2.3]: https://github.com/kaapstorm/testsweet/releases/tag/v0.2.3
 
 
 [0.2.2] (2026-06-27)
