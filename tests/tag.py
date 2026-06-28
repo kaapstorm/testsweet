@@ -66,6 +66,5 @@ class TagDecorator:
 
 
 @test
-class TagsMarkerConstant:
-    def name_is_dunder_testsweet_tags(self):
-        assert TAGS_MARKER == '__testsweet_tags__'
+def tags_marker_name_is_dunder_testsweet_tags():
+    assert TAGS_MARKER == '__testsweet_tags__'

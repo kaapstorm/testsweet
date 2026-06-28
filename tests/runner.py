@@ -416,13 +416,10 @@ class DecoratorOnClass:
 
 
 @test
-class DiscoverIntegration:
-    def discover_returns_decorated_class(self):
-        mod = importlib.import_module(
-            'tests.fixtures.runner.class_simple',
-        )
-        result = discover(mod)
-        assert [cls.__name__ for cls in result] == ['Simple']
+def discover_returns_decorated_class():
+    mod = importlib.import_module('tests.fixtures.runner.class_simple')
+    result = discover(mod)
+    assert [cls.__name__ for cls in result] == ['Simple']
 
 
 @test

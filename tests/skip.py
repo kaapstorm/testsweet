@@ -106,6 +106,5 @@ class SkipDecorator:
 
 
 @test
-class SkipMarkerConstant:
-    def name_is_dunder_testsweet_skip(self):
-        assert SKIP_MARKER == '__testsweet_skip__'
+def skip_marker_name_is_dunder_testsweet_skip():
+    assert SKIP_MARKER == '__testsweet_skip__'

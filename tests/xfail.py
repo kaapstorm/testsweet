@@ -92,6 +92,5 @@ class XFailDecorator:
 
 
 @test
-class XFailMarkerConstant:
-    def name_is_dunder_testsweet_xfail(self):
-        assert XFAIL_MARKER == '__testsweet_xfail__'
+def xfail_marker_name_is_dunder_testsweet_xfail():
+    assert XFAIL_MARKER == '__testsweet_xfail__'
