@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+### Internal
+
+- Made simplifications to the test suite.
+
+
 [0.2.3] (2026-06-28)
 --------------------
 
