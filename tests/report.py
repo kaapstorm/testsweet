@@ -26,6 +26,14 @@ def _capture(full_name, outcome):
     return buf.getvalue()
 
 
+def _capture_io(full_name, outcome, stdout='', stderr=''):
+    buf = io.StringIO()
+    print_failure_detail(
+        full_name, outcome, stdout=stdout, stderr=stderr, file=buf,
+    )
+    return buf.getvalue()
+
+
 @test
 class FormatResultLine:
     def pass_outcome(self):
@@ -107,6 +115,46 @@ class PrintFailureDetail:
             out = _capture('mod.t', Errored(exc))
         assert 'ERROR: mod.t' in out
         assert 'TypeError' in out
+
+
+@test
+class PrintFailureDetailCaptured:
+    def failed_shows_captured_stdout(self):
+        try:
+            assert 1 == 2
+        except AssertionError as exc:
+            out = _capture_io('mod.t', Failed(exc), stdout='hello\n')
+        assert 'Captured stdout' in out
+        assert 'hello' in out
+
+    def failed_shows_captured_stderr(self):
+        try:
+            assert 1 == 2
+        except AssertionError as exc:
+            out = _capture_io('mod.t', Failed(exc), stderr='boom\n')
+        assert 'Captured stderr' in out
+        assert 'boom' in out
+
+    def errored_shows_captured_output(self):
+        try:
+            raise TypeError('nope')
+        except TypeError as exc:
+            out = _capture_io('mod.t', Errored(exc), stdout='trace me\n')
+        assert 'Captured stdout' in out
+        assert 'trace me' in out
+
+    def empty_capture_emits_no_section(self):
+        try:
+            assert 1 == 2
+        except AssertionError as exc:
+            out = _capture_io('mod.t', Failed(exc))
+        assert 'Captured stdout' not in out
+        assert 'Captured stderr' not in out
+
+    def xpassed_shows_captured_output(self):
+        out = _capture_io('mod.t', XPassed('see #42'), stdout='ran anyway\n')
+        assert 'Captured stdout' in out
+        assert 'ran anyway' in out
 
 
 @test

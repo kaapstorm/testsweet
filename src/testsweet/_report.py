@@ -71,9 +71,20 @@ def format_result_line(
             return f'{full_name} ... {status}'
 
 
+def _print_captured(stdout: str, stderr: str, file: TextIO) -> None:
+    if stdout:
+        print('-' * 26 + ' Captured stdout ' + '-' * 27, file=file)
+        print(stdout, end='' if stdout.endswith('\n') else '\n', file=file)
+    if stderr:
+        print('-' * 26 + ' Captured stderr ' + '-' * 27, file=file)
+        print(stderr, end='' if stderr.endswith('\n') else '\n', file=file)
+
+
 def print_failure_detail(
     full_name: str,
     outcome: Outcome,
+    stdout: str = '',
+    stderr: str = '',
     file: TextIO = sys.stdout,
 ) -> None:
     """Multi-line failure block.
@@ -90,14 +101,17 @@ def print_failure_detail(
             print(f'XPASSED: {full_name}', file=file)
             print('-' * 70, file=file)
             print(_XPASS_DETAIL, file=file)
+            _print_captured(stdout, stderr, file)
             return
         case Failed(exc=exc):
             _print_traceback_block('FAIL', full_name, exc, file)
             explanation = explain_assertion(exc)
             if explanation is not None:
                 print(explanation, file=file)
+            _print_captured(stdout, stderr, file)
         case Errored(exc=exc):
             _print_traceback_block('ERROR', full_name, exc, file)
+            _print_captured(stdout, stderr, file)
 
 
 def _print_traceback_block(
