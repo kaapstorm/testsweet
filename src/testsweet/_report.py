@@ -85,13 +85,15 @@ def print_failure_detail(
     outcome: Outcome,
     stdout: str = '',
     stderr: str = '',
-    file: TextIO = sys.stdout,
+    file: TextIO | None = None,
 ) -> None:
     """Multi-line failure block.
 
     Fires only for ``Failed``, ``Errored``, and ``XPassed``. Other
     outcomes do not get a detail block.
     """
+    if file is None:
+        file = sys.stdout
     match outcome:
         case Passed() | Skipped() | XFailed():
             return
