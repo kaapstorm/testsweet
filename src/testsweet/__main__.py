@@ -7,7 +7,7 @@ import time
 from testsweet._config import load_config
 from testsweet._loaders import scoped_sys_path
 from testsweet._plugins import load_plugins, session_for, unit_wrapper
-from testsweet._outcomes import Errored, Failed, Outcome, XPassed
+from testsweet._outcomes import Errored, Failed, Outcome, Result, XPassed
 from testsweet._report import (
     format_result_line,
     print_failure_detail,
@@ -122,7 +122,7 @@ def main(argv: list[str]) -> int:
         plugins = load_plugins()
         wrap_unit = unit_wrapper(plugins)
         use_color = _supports_color()
-        results: list[tuple[str, Outcome]] = []
+        results: list[Result] = []
         real_failures: list[tuple[str, Outcome]] = []
         start = time.monotonic()
         with session_for(plugins):
@@ -130,14 +130,14 @@ def main(argv: list[str]) -> int:
             last_module: str | None = None
             last_class: str | None = None
             for module, names in groups:
-                for name, outcome in run(
+                for result in run(
                     module,
                     names=names,
                     wrap_unit=wrap_unit,
                     keep=keep,
                 ):
-                    full_name = f'{module.__name__}.{name}'
-                    class_name, short_name = _split_group(name)
+                    full_name = f'{module.__name__}.{result.name}'
+                    class_name, short_name = _split_group(result.name)
                     if module.__name__ != last_module:
                         print(module.__name__)
                         last_module = module.__name__
@@ -147,10 +147,10 @@ def main(argv: list[str]) -> int:
                             print(f'  {class_name}')
                         last_class = class_name
                     indent = '    ' if class_name else '  '
-                    print(f'{indent}{format_result_line(short_name, outcome, use_color=use_color)}')
-                    results.append((full_name, outcome))
-                    if isinstance(outcome, (Failed, Errored, XPassed)):
-                        real_failures.append((full_name, outcome))
+                    print(f'{indent}{format_result_line(short_name, result.outcome, use_color=use_color)}')
+                    results.append(result)
+                    if isinstance(result.outcome, (Failed, Errored, XPassed)):
+                        real_failures.append((full_name, result.outcome))
         elapsed = time.monotonic() - start
         for full_name, outcome in real_failures:
             print_failure_detail(full_name, outcome)

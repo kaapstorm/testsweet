@@ -14,6 +14,7 @@ from testsweet._outcomes import (
     Failed,
     Outcome,
     Passed,
+    Result,
     Skipped,
     XFailed,
     XPassed,
@@ -140,15 +141,15 @@ _SUMMARY_ORDER = (
 
 
 def summarize(
-    results: Iterable[tuple[str, Outcome]],
+    results: Iterable[Result],
     use_color: bool = False,
     elapsed: float | None = None,
 ) -> str:
     """One-line summary of result counts."""
     counts: collections.Counter = collections.Counter()
     total = 0
-    for _name, outcome in results:
-        counts[_outcome_key(outcome)] += 1
+    for r in results:
+        counts[_outcome_key(r.outcome)] += 1
         total += 1
     timing = f' in {elapsed:.2f}s' if elapsed is not None else ''
     if total == 0:

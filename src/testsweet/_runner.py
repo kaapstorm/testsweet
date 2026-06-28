@@ -1,5 +1,11 @@
 """Run resolved test units and collect results."""
-from contextlib import AbstractContextManager, nullcontext
+import io
+from contextlib import (
+    AbstractContextManager,
+    nullcontext,
+    redirect_stderr,
+    redirect_stdout,
+)
 from types import ModuleType
 from typing import Any, Callable
 
@@ -10,6 +16,7 @@ from testsweet._outcomes import (
     Failed,
     Outcome,
     Passed,
+    Result,
     Skipped,
     XFailed,
     XPassed,
@@ -24,7 +31,7 @@ def run(
     names: list[str] | None = None,
     wrap_unit: Callable[[str], AbstractContextManager[Any]] | None = None,
     keep: TagFilter | None = None,
-) -> list[tuple[str, Outcome]]:
+) -> list[Result]:
     """Run the tests in ``module``.
 
     If ``names`` is given, only run tests whose qualified names appear
@@ -35,16 +42,18 @@ def run(
     method's effective tag set is the union of its class's tags and
     its own.
 
-    Returns a list of ``(name, outcome)`` tuples. ``outcome`` is one
-    of ``Passed``, ``Failed``, ``Errored``, ``Skipped``, ``XFailed``,
-    ``XPassed``.
+    Returns a list of ``Result`` records. Each carries the unit's
+    ``name``, its ``outcome`` (one of ``Passed``, ``Failed``,
+    ``Errored``, ``Skipped``, ``XFailed``, ``XPassed``), and the
+    ``stdout``/``stderr`` it printed (empty unless it wrote to those
+    streams; captured only while the unit body runs).
     """
     if wrap_unit is None:
         def wrap_unit(_name: str) -> AbstractContextManager[Any]:
             return nullcontext()
-    results: list[tuple[str, Outcome]] = []
+    results: list[Result] = []
     for name, call in resolve_units(module, names, keep=keep):
-        results.append((name, _run_one(name, call, wrap_unit)))
+        results.append(_run_one(name, call, wrap_unit))
     return results
 
 
@@ -52,29 +61,43 @@ def _run_one(
     name: str,
     call: Callable[[], Any],
     wrap_unit: Callable[[str], AbstractContextManager[Any]],
-) -> Outcome:
+) -> Result:
     try:
         skip_marker: SkipMarker | None = active_marker(call, SKIP_MARKER)
     except Exception as exc:
-        return Errored(exc)
+        return Result(name, Errored(exc))
     if skip_marker is not None:
-        return Skipped(skip_marker.reason)
+        return Result(name, Skipped(skip_marker.reason))
     try:
         xfail_marker: XFailMarker | None = active_marker(call, XFAIL_MARKER)
     except Exception as exc:
-        return Errored(exc)
+        return Result(name, Errored(exc))
+    out_buf = io.StringIO()
+    err_buf = io.StringIO()
     if xfail_marker is not None:
         try:
-            with wrap_unit(name):
+            with (
+                wrap_unit(name),
+                redirect_stdout(out_buf),
+                redirect_stderr(err_buf),
+            ):
                 call()
         except Exception as exc:
-            return XFailed(exc, xfail_marker.reason)
-        return XPassed(xfail_marker.reason)
+            outcome: Outcome = XFailed(exc, xfail_marker.reason)
+        else:
+            outcome = XPassed(xfail_marker.reason)
+        return Result(name, outcome, out_buf.getvalue(), err_buf.getvalue())
     try:
-        with wrap_unit(name):
+        with (
+            wrap_unit(name),
+            redirect_stdout(out_buf),
+            redirect_stderr(err_buf),
+        ):
             call()
     except AssertionError as exc:
-        return Failed(exc)
+        outcome = Failed(exc)
     except Exception as exc:
-        return Errored(exc)
-    return Passed()
+        outcome = Errored(exc)
+    else:
+        outcome = Passed()
+    return Result(name, outcome, out_buf.getvalue(), err_buf.getvalue())
