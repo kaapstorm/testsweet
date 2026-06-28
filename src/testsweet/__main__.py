@@ -147,7 +147,12 @@ def main(argv: list[str]) -> int:
                             print(f'  {class_name}')
                         last_class = class_name
                     indent = '    ' if class_name else '  '
-                    print(f'{indent}{format_result_line(short_name, result.outcome, use_color=use_color)}')
+                    result_line = format_result_line(
+                        short_name,
+                        result.outcome,
+                        use_color=use_color,
+                    )
+                    print(f'{indent}{result_line}')
                     results.append(result)
                     if isinstance(result.outcome, (Failed, Errored, XPassed)):
                         real_failures.append((full_name, result))

@@ -28,7 +28,11 @@ class SupportsColor:
             assert not _supports_color()
 
     def non_windows_tty_returns_true(self):
-        with patch('sys.stdout') as m, patch('sys.platform', 'linux'), _tty_env():
+        with (
+            patch('sys.stdout') as m,
+            patch('sys.platform', 'linux',),
+            _tty_env()
+        ):
             m.isatty.return_value = True
             assert _supports_color()
 

@@ -62,7 +62,11 @@ def format_result_line(
             return f'{full_name} ... {status}'
         case Failed(exc=exc):
             detail = str(exc) or assertion_source(exc) or ''
-            status = _c(f'FAIL: AssertionError: {detail}', _BOLD_RED, use_color)
+            status = _c(
+                f'FAIL: AssertionError: {detail}',
+                _BOLD_RED,
+                use_color,
+            )
             return f'{full_name} ... {status}'
         case Errored(exc=exc):
             status = _c(
