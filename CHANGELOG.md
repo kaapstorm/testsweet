@@ -7,6 +7,11 @@ Unreleased
 ### Improvements
 
 - Added tests and documentation for the assertion explainer.
+- Added color output for outcomes.
+- Grouped output by module and class.
+- Included timing in the summary.
+- Captured each test's stdout and stderr, replaying them in the
+  failure detail block.
 
 
 [0.2.2] (2026-06-27)
