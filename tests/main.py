@@ -3,7 +3,7 @@ import os
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
-from testsweet import test
+from testsweet import params, test
 from testsweet.__main__ import _supports_color, main
 
 
@@ -17,56 +17,27 @@ def _tty_env(**env_overrides):
 
 @test
 class SupportsColor:
-    def not_a_tty_returns_false(self):
-        with patch('sys.stdout') as m, _tty_env():
-            m.isatty.return_value = False
-            assert not _supports_color()
-
-    def no_color_env_returns_false(self):
-        with patch('sys.stdout') as m, _tty_env(NO_COLOR='1'):
-            m.isatty.return_value = True
-            assert not _supports_color()
-
-    def non_windows_tty_returns_true(self):
+    @params([
+        # isatty, platform, version_info, env_overrides, expected
+        (False, 'linux', (3, 11), {}, False),
+        (True, 'linux', (3, 11), {'NO_COLOR': '1'}, False),
+        (True, 'linux', (3, 11), {}, True),
+        (True, 'win32', (3, 11), {}, False),
+        (True, 'win32', (3, 12), {}, True),
+        (True, 'win32', (3, 11), {'WT_SESSION': 'abc-123'}, True),
+        (True, 'win32', (3, 11), {'ANSICON': '80x24'}, True),
+    ])
+    def reports_color_support(
+        self, isatty, platform, version_info, env_overrides, expected,
+    ):
         with (
             patch('sys.stdout') as m,
-            patch('sys.platform', 'linux',),
-            _tty_env()
+            patch('sys.platform', platform),
+            patch('sys.version_info', version_info),
+            _tty_env(**env_overrides),
         ):
-            m.isatty.return_value = True
-            assert _supports_color()
-
-    def windows_old_python_no_extras_returns_false(self):
-        with patch('sys.stdout') as m, \
-             patch('sys.platform', 'win32'), \
-             patch('sys.version_info', (3, 11)), \
-             _tty_env():
-            m.isatty.return_value = True
-            assert not _supports_color()
-
-    def windows_python_312_returns_true(self):
-        with patch('sys.stdout') as m, \
-             patch('sys.platform', 'win32'), \
-             patch('sys.version_info', (3, 12)), \
-             _tty_env():
-            m.isatty.return_value = True
-            assert _supports_color()
-
-    def windows_wt_session_returns_true(self):
-        with patch('sys.stdout') as m, \
-             patch('sys.platform', 'win32'), \
-             patch('sys.version_info', (3, 11)), \
-             _tty_env(WT_SESSION='abc-123'):
-            m.isatty.return_value = True
-            assert _supports_color()
-
-    def windows_ansicon_returns_true(self):
-        with patch('sys.stdout') as m, \
-             patch('sys.platform', 'win32'), \
-             patch('sys.version_info', (3, 11)), \
-             _tty_env(ANSICON='80x24'):
-            m.isatty.return_value = True
-            assert _supports_color()
+            m.isatty.return_value = isatty
+            assert _supports_color() is expected
 
 
 @test

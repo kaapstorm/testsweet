@@ -1,6 +1,6 @@
 import io
 
-from testsweet import test
+from testsweet import params, test
 from testsweet._outcomes import (
     Errored,
     Failed,
@@ -36,46 +36,25 @@ def _capture_io(full_name, outcome, stdout='', stderr=''):
 
 @test
 class FormatResultLine:
-    def pass_outcome(self):
-        assert format_result_line('mod.t', Passed()) == 'mod.t ... ok'
-
-    def skipped_with_reason(self):
-        line = format_result_line('mod.t', Skipped('not yet'))
-        assert line == 'mod.t ... skipped: not yet'
-
-    def skipped_without_reason(self):
-        line = format_result_line('mod.t', Skipped())
-        assert line == 'mod.t ... skipped'
-
-    def xfailed_with_reason(self):
-        line = format_result_line(
-            'mod.t', XFailed(ValueError('boom'), 'see #42'),
-        )
-        assert line == 'mod.t ... xfailed: see #42'
-
-    def xfailed_without_reason(self):
-        line = format_result_line('mod.t', XFailed(ValueError('boom')))
-        assert line == 'mod.t ... xfailed'
-
-    def xpassed_with_reason(self):
-        line = format_result_line('mod.t', XPassed('see #42'))
-        assert line == 'mod.t ... XPASSED: see #42'
-
-    def xpassed_without_reason(self):
-        line = format_result_line('mod.t', XPassed())
-        assert line == 'mod.t ... XPASSED'
-
-    def failed_for_assertion_error(self):
-        outcome = Failed(AssertionError('1 == 2'))
-        line = format_result_line('mod.t', outcome)
-        assert line == 'mod.t ... FAIL: AssertionError: 1 == 2'
-
-    def errored_for_other_exception(self):
-        outcome = Errored(TypeError("'int' object is not iterable"))
-        line = format_result_line('mod.t', outcome)
-        assert line == (
-            "mod.t ... ERROR: TypeError: 'int' object is not iterable"
-        )
+    @params([
+        (Passed(), 'mod.t ... ok'),
+        (Skipped('not yet'), 'mod.t ... skipped: not yet'),
+        (Skipped(), 'mod.t ... skipped'),
+        (XFailed(ValueError('boom'), 'see #42'), 'mod.t ... xfailed: see #42'),
+        (XFailed(ValueError('boom')), 'mod.t ... xfailed'),
+        (XPassed('see #42'), 'mod.t ... XPASSED: see #42'),
+        (XPassed(), 'mod.t ... XPASSED'),
+        (
+            Failed(AssertionError('1 == 2')),
+            'mod.t ... FAIL: AssertionError: 1 == 2',
+        ),
+        (
+            Errored(TypeError("'int' object is not iterable")),
+            "mod.t ... ERROR: TypeError: 'int' object is not iterable",
+        ),
+    ])
+    def formats_outcome(self, outcome, expected):
+        assert format_result_line('mod.t', outcome) == expected
 
 
 @test
@@ -159,47 +138,18 @@ class PrintFailureDetailCaptured:
 
 @test
 class FormatResultLineColor:
-    def pass_has_green_ok(self):
-        line = format_result_line('mod.t', Passed(), use_color=True)
-        assert '\x1b[32m' in line
-        assert 'ok' in line
-
-    def fail_has_red_status(self):
-        line = format_result_line(
-            'mod.t',
-            Failed(AssertionError('x')),
-            use_color=True,
-        )
-        assert '\x1b[' in line
-        assert 'FAIL' in line
-
-    def error_has_red_status(self):
-        line = format_result_line(
-            'mod.t',
-            Errored(TypeError('x')),
-            use_color=True,
-        )
-        assert '\x1b[' in line
-        assert 'ERROR' in line
-
-    def skipped_has_yellow_status(self):
-        line = format_result_line('mod.t', Skipped(), use_color=True)
-        assert '\x1b[33m' in line
-        assert 'skipped' in line
-
-    def xfailed_has_yellow_status(self):
-        line = format_result_line(
-            'mod.t',
-            XFailed(ValueError('x')),
-            use_color=True,
-        )
-        assert '\x1b[33m' in line
-        assert 'xfailed' in line
-
-    def xpassed_has_magenta_status(self):
-        line = format_result_line('mod.t', XPassed(), use_color=True)
-        assert '\x1b[' in line
-        assert 'XPASSED' in line
+    @params([
+        (Passed(), '\x1b[32m', 'ok'),
+        (Failed(AssertionError('x')), '\x1b[', 'FAIL'),
+        (Errored(TypeError('x')), '\x1b[', 'ERROR'),
+        (Skipped(), '\x1b[33m', 'skipped'),
+        (XFailed(ValueError('x')), '\x1b[33m', 'xfailed'),
+        (XPassed(), '\x1b[', 'XPASSED'),
+    ])
+    def colors_status(self, outcome, color_code, status):
+        line = format_result_line('mod.t', outcome, use_color=True)
+        assert color_code in line
+        assert status in line
 
     def no_color_by_default(self):
         line = format_result_line('mod.t', Passed())
@@ -226,22 +176,14 @@ class SummarizeColor:
 
 @test
 class SummarizeTiming:
-    def elapsed_appended_to_summary(self):
-        results = [Result('a', Passed())]
-        out = summarize(results, elapsed=1.5)
-        assert out == '1 passed in 1.50s'
-
-    def elapsed_zero(self):
-        out = summarize([Result('a', Passed())], elapsed=0.0)
-        assert out == '1 passed in 0.00s'
-
-    def no_elapsed_omits_timing(self):
-        out = summarize([Result('a', Passed())])
-        assert 'in' not in out
-
-    def elapsed_on_empty_results(self):
-        out = summarize([], elapsed=0.5)
-        assert out == '0 tests in 0.50s'
+    @params([
+        ([Result('a', Passed())], 1.5, '1 passed in 1.50s'),
+        ([Result('a', Passed())], 0.0, '1 passed in 0.00s'),
+        ([Result('a', Passed())], None, '1 passed'),
+        ([], 0.5, '0 tests in 0.50s'),
+    ])
+    def renders_elapsed(self, results, elapsed, expected):
+        assert summarize(results, elapsed=elapsed) == expected
 
 
 @test
