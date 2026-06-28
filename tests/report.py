@@ -5,6 +5,7 @@ from testsweet._outcomes import (
     Errored,
     Failed,
     Passed,
+    Result,
     Skipped,
     XFailed,
     XPassed,
@@ -16,7 +17,7 @@ from testsweet._report import (
 )
 
 Outcome = Passed | Failed | Errored | Skipped | XFailed | XPassed
-Results = list[tuple[str, Outcome]]
+Results = list[Result]
 
 
 def _capture(full_name, outcome):
@@ -148,31 +149,34 @@ class FormatResultLineColor:
 @test
 class SummarizeColor:
     def passed_count_is_green(self):
-        result = summarize([('a', Passed())], use_color=True)
+        result = summarize([Result('a', Passed())], use_color=True)
         assert '\x1b[32m' in result
 
     def failed_count_is_red(self):
-        result = summarize([('a', Failed(AssertionError()))], use_color=True)
+        result = summarize(
+            [Result('a', Failed(AssertionError()))],
+            use_color=True,
+        )
         assert '\x1b[1;31m' in result
 
     def no_color_by_default(self):
-        result = summarize([('a', Passed())])
+        result = summarize([Result('a', Passed())])
         assert '\x1b[' not in result
 
 
 @test
 class SummarizeTiming:
     def elapsed_appended_to_summary(self):
-        results = [('a', Passed())]
+        results = [Result('a', Passed())]
         out = summarize(results, elapsed=1.5)
         assert out == '1 passed in 1.50s'
 
     def elapsed_zero(self):
-        out = summarize([('a', Passed())], elapsed=0.0)
+        out = summarize([Result('a', Passed())], elapsed=0.0)
         assert out == '1 passed in 0.00s'
 
     def no_elapsed_omits_timing(self):
-        out = summarize([('a', Passed())])
+        out = summarize([Result('a', Passed())])
         assert 'in' not in out
 
     def elapsed_on_empty_results(self):
@@ -186,18 +190,18 @@ class Summarize:
         assert summarize([]) == '0 tests'
 
     def all_passes(self):
-        results = [('a', Passed()), ('b', Passed())]
+        results = [Result('a', Passed()), Result('b', Passed())]
         assert summarize(results) == '2 passed'
 
     def mixed_outcomes(self):
         results: Results = [
-            ('p1', Passed()),
-            ('p2', Passed()),
-            ('f1', Failed(AssertionError('x'))),
-            ('e1', Errored(TypeError('y'))),
-            ('s1', Skipped('later')),
-            ('xf1', XFailed(ValueError('z'))),
-            ('xp1', XPassed()),
+            Result('p1', Passed()),
+            Result('p2', Passed()),
+            Result('f1', Failed(AssertionError('x'))),
+            Result('e1', Errored(TypeError('y'))),
+            Result('s1', Skipped('later')),
+            Result('xf1', XFailed(ValueError('z'))),
+            Result('xp1', XPassed()),
         ]
         assert summarize(results) == (
             '2 passed, 1 failed, 1 error, '
@@ -205,7 +209,7 @@ class Summarize:
         )
 
     def zero_categories_omitted(self):
-        results = [('s1', Skipped()), ('s2', Skipped())]
+        results = [Result('s1', Skipped()), Result('s2', Skipped())]
         assert summarize(results) == '2 skipped'
 
     def category_order_is_stable(self):
@@ -213,10 +217,10 @@ class Summarize:
         # always emits passed → failed → error → skipped → xfailed
         # → xpassed.
         results: Results = [
-            ('xp1', XPassed()),
-            ('p1', Passed()),
-            ('s1', Skipped()),
-            ('f1', Failed(AssertionError())),
+            Result('xp1', XPassed()),
+            Result('p1', Passed()),
+            Result('s1', Skipped()),
+            Result('f1', Failed(AssertionError())),
         ]
         assert summarize(results) == (
             '1 passed, 1 failed, 1 skipped, 1 xpassed'

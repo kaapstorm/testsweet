@@ -24,26 +24,26 @@ class Run:
         )
         results = run(mod)
         assert len(results) == 2
-        for _, outcome in results:
-            assert isinstance(outcome, Passed)
+        for r in results:
+            assert isinstance(r.outcome, Passed)
 
     def single_failing_assert(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.has_failure',
         )
         results = run(mod)
-        assert results[0][0] == 'passes'
-        assert isinstance(results[0][1], Passed)
-        assert results[1][0] == 'fails'
-        assert isinstance(results[1][1], Failed)
-        assert isinstance(results[1][1].exc, AssertionError)
+        assert results[0].name == 'passes'
+        assert isinstance(results[0].outcome, Passed)
+        assert results[1].name == 'fails'
+        assert isinstance(results[1].outcome, Failed)
+        assert isinstance(results[1].outcome.exc, AssertionError)
 
     def results_in_discover_order(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.has_failure',
         )
         results = run(mod)
-        assert [name for name, _ in results] == ['passes', 'fails']
+        assert [r.name for r in results] == ['passes', 'fails']
 
     def empty_module_returns_empty_list(self):
         mod = importlib.import_module(
@@ -58,10 +58,9 @@ class Run:
         )
         results = run(mod)
         assert len(results) == 1
-        name, outcome = results[0]
-        assert name == 'raises_value_error'
-        assert isinstance(outcome, Errored)
-        assert isinstance(outcome.exc, ValueError)
+        assert results[0].name == 'raises_value_error'
+        assert isinstance(results[0].outcome, Errored)
+        assert isinstance(results[0].outcome.exc, ValueError)
 
     def keyboard_interrupt_propagates(self):
         mod = importlib.import_module(
@@ -83,17 +82,17 @@ class RunClass:
         )
         results = run(mod)
         assert len(results) == 2
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['Simple.first', 'Simple.second']
-        for _, outcome in results:
-            assert isinstance(outcome, Passed)
+        for r in results:
+            assert isinstance(r.outcome, Passed)
 
     def underscore_methods_are_skipped(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_with_underscore_methods',
         )
         results = run(mod)
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['WithUnderscores.public']
 
     def enter_and_exit_run_around_methods(self):
@@ -110,11 +109,11 @@ class RunClass:
         )
         results = run(mod)
         assert len(results) == 2
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['HasFailure.passes', 'HasFailure.fails']
-        assert isinstance(results[0][1], Passed)
-        assert isinstance(results[1][1], Failed)
-        assert isinstance(results[1][1].exc, AssertionError)
+        assert isinstance(results[0].outcome, Passed)
+        assert isinstance(results[1].outcome, Failed)
+        assert isinstance(results[1].outcome.exc, AssertionError)
 
     def enter_exception_propagates(self):
         mod = importlib.import_module(
@@ -139,7 +138,7 @@ class RunClass:
             'tests.fixtures.runner.class_mixed_with_function',
         )
         results = run(mod)
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['free_function', 'ClassUnit.method']
 
 
@@ -150,22 +149,22 @@ class RunParamsEager:
             'tests.fixtures.runner.params_simple',
         )
         results = run(mod)
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['adds[0]', 'adds[1]']
-        for _, outcome in results:
-            assert isinstance(outcome, Passed)
+        for r in results:
+            assert isinstance(r.outcome, Passed)
 
     def failure_recorded_at_correct_index(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.params_with_failure',
         )
         results = run(mod)
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['adds[0]', 'adds[1]', 'adds[2]']
-        assert isinstance(results[0][1], Passed)
-        assert isinstance(results[1][1], Failed)
-        assert isinstance(results[1][1].exc, AssertionError)
-        assert isinstance(results[2][1], Passed)
+        assert isinstance(results[0].outcome, Passed)
+        assert isinstance(results[1].outcome, Failed)
+        assert isinstance(results[1].outcome.exc, AssertionError)
+        assert isinstance(results[2].outcome, Passed)
 
     def empty_param_list_produces_no_results(self):
         mod = importlib.import_module(
@@ -178,10 +177,10 @@ class RunParamsEager:
             'tests.fixtures.runner.params_no_decoration',
         )
         results = run(mod)
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['plain', 'parameterized[0]']
-        for _, outcome in results:
-            assert isinstance(outcome, Passed)
+        for r in results:
+            assert isinstance(r.outcome, Passed)
 
     def accepts_generator(self):
         # The generator was consumed at decoration time, so the second
@@ -191,12 +190,12 @@ class RunParamsEager:
         )
         first = run(mod)
         second = run(mod)
-        assert [name for name, _ in first] == [
+        assert [r.name for r in first] == [
             'adds[0]',
             'adds[1]',
             'adds[2]',
         ]
-        assert [name for name, _ in second] == [
+        assert [r.name for r in second] == [
             'adds[0]',
             'adds[1]',
             'adds[2]',
@@ -207,10 +206,10 @@ class RunParamsEager:
             'tests.fixtures.runner.params_on_class_method',
         )
         results = run(mod)
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['Cls.method[0]', 'Cls.method[1]']
-        for _, outcome in results:
-            assert isinstance(outcome, Passed)
+        for r in results:
+            assert isinstance(r.outcome, Passed)
 
 
 @test
@@ -222,10 +221,10 @@ class RunParamsLazy:
         # Re-import so the module-level generator is freshly created.
         importlib.reload(mod)
         results = run(mod)
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['adds[0]', 'adds[1]', 'adds[2]']
-        for _, outcome in results:
-            assert isinstance(outcome, Passed)
+        for r in results:
+            assert isinstance(r.outcome, Passed)
 
     def generator_is_consumed_after_first_run(self):
         mod = importlib.import_module(
@@ -244,8 +243,8 @@ class RunParamsLazy:
         importlib.reload(mod)
         first = run(mod)
         second = run(mod)
-        names_first = [name for name, _ in first]
-        names_second = [name for name, _ in second]
+        names_first = [r.name for r in first]
+        names_second = [r.name for r in second]
         assert names_first == ['equals[0]', 'equals[1]']
         assert names_second == ['equals[0]', 'equals[1]']
 
@@ -255,10 +254,10 @@ class RunParamsLazy:
         )
         importlib.reload(mod)
         results = run(mod)
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['Cls.method[0]', 'Cls.method[1]']
-        for _, outcome in results:
-            assert isinstance(outcome, Passed)
+        for r in results:
+            assert isinstance(r.outcome, Passed)
 
 
 @test
@@ -268,14 +267,14 @@ class RunNames:
             'tests.fixtures.runner.all_pass',
         )
         results = run(mod, names=['passes_one'])
-        assert [name for name, _ in results] == ['passes_one']
+        assert [r.name for r in results] == ['passes_one']
 
     def class_name_runs_all_methods(self):
         mod = importlib.import_module(
             'tests.fixtures.runner.class_simple',
         )
         results = run(mod, names=['Simple'])
-        assert [name for name, _ in results] == [
+        assert [r.name for r in results] == [
             'Simple.first',
             'Simple.second',
         ]
@@ -285,7 +284,7 @@ class RunNames:
             'tests.fixtures.runner.class_simple',
         )
         results = run(mod, names=['Simple.first'])
-        assert [name for name, _ in results] == ['Simple.first']
+        assert [r.name for r in results] == ['Simple.first']
 
     def two_method_selectors_run_in_vars_order(self):
         mod = importlib.import_module(
@@ -296,7 +295,7 @@ class RunNames:
             names=['Simple.second', 'Simple.first'],
         )
         # vars() order, NOT argv order — Simple.first defined first.
-        assert [name for name, _ in results] == [
+        assert [r.name for r in results] == [
             'Simple.first',
             'Simple.second',
         ]
@@ -306,7 +305,7 @@ class RunNames:
             'tests.fixtures.runner.class_simple',
         )
         results = run(mod, names=['Simple', 'Simple.first'])
-        assert [name for name, _ in results] == [
+        assert [r.name for r in results] == [
             'Simple.first',
             'Simple.second',
         ]
@@ -339,7 +338,7 @@ class RunNames:
             'tests.fixtures.runner.params_simple',
         )
         results = run(mod, names=['adds'])
-        assert [name for name, _ in results] == ['adds[0]', 'adds[1]']
+        assert [r.name for r in results] == ['adds[0]', 'adds[1]']
 
     def class_method_unknown_method_raises(self):
         mod = importlib.import_module(
@@ -358,9 +357,9 @@ class DecoratedClass:
             'tests.fixtures.runner.class_decorated_simple',
         )
         results = run(mod)
-        names = sorted(name for name, _ in results)
+        names = sorted(r.name for r in results)
         assert names == ['Simple.fails', 'Simple.passes']
-        outcomes = dict(results)
+        outcomes = {r.name: r.outcome for r in results}
         assert isinstance(outcomes['Simple.passes'], Passed)
         assert isinstance(outcomes['Simple.fails'], Failed)
         assert isinstance(outcomes['Simple.fails'].exc, AssertionError)
@@ -370,8 +369,8 @@ class DecoratedClass:
             'tests.fixtures.runner.class_decorated_with_cm',
         )
         results = run(mod)
-        assert [name for name, _ in results] == ['WithCM.uses_fixture']
-        assert isinstance(results[0][1], Passed)
+        assert [r.name for r in results] == ['WithCM.uses_fixture']
+        assert isinstance(results[0].outcome, Passed)
         assert mod.CALLS == ['enter', 'test', 'exit']
 
     def class_with_enter_only_propagates_type_error(self):
@@ -532,7 +531,7 @@ class RunWithWrapUnit:
             'tests.fixtures.runner.all_pass',
         )
         results = run(mod, wrap_unit=wrap)
-        assert [name for name, _ in results] == [
+        assert [r.name for r in results] == [
             'passes_one', 'passes_two',
         ]
         assert events == [
@@ -557,9 +556,9 @@ class RunWithWrapUnit:
             'tests.fixtures.runner.all_pass',
         )
         results = run(mod, wrap_unit=wrap)
-        for _, outcome in results:
-            assert isinstance(outcome, Errored)
-            assert isinstance(outcome.exc, RuntimeError)
+        for r in results:
+            assert isinstance(r.outcome, Errored)
+            assert isinstance(r.outcome.exc, RuntimeError)
 
     def wrap_unit_exit_failure_attributed_to_test(self):
         @contextmanager
@@ -573,9 +572,9 @@ class RunWithWrapUnit:
             'tests.fixtures.runner.all_pass',
         )
         results = run(mod, wrap_unit=wrap)
-        for _, outcome in results:
-            assert isinstance(outcome, Errored)
-            assert isinstance(outcome.exc, RuntimeError)
+        for r in results:
+            assert isinstance(r.outcome, Errored)
+            assert isinstance(r.outcome.exc, RuntimeError)
 
 
 @test
@@ -588,10 +587,10 @@ class RunWithTestContext:
         )
         mod.CALLS.clear()
         results = run(mod)
-        names = [name for name, _ in results]
+        names = [r.name for r in results]
         assert names == ['Cls.method[0]', 'Cls.method[1]']
-        for _, outcome in results:
-            assert isinstance(outcome, Passed)
+        for r in results:
+            assert isinstance(r.outcome, Passed)
         assert mod.CALLS == [
             'enter',
             'ctx-enter', 'method(1,2)', 'ctx-exit',
@@ -604,10 +603,10 @@ class RunWithTestContext:
             'tests.fixtures.runner.class_test_context_raises',
         )
         results = run(mod, names=['TestContextEnterRaises'])
-        assert [name for name, _ in results] == [
+        assert [r.name for r in results] == [
             'TestContextEnterRaises.passes',
         ]
-        outcome = results[0][1]
+        outcome = results[0].outcome
         assert isinstance(outcome, Errored)
         assert isinstance(outcome.exc, RuntimeError)
         assert 'enter failed' in str(outcome.exc)
@@ -617,10 +616,10 @@ class RunWithTestContext:
             'tests.fixtures.runner.class_test_context_raises',
         )
         results = run(mod, names=['TestContextExitRaises'])
-        assert [name for name, _ in results] == [
+        assert [r.name for r in results] == [
             'TestContextExitRaises.passes',
         ]
-        outcome = results[0][1]
+        outcome = results[0].outcome
         assert isinstance(outcome, Errored)
         assert isinstance(outcome.exc, RuntimeError)
         assert 'exit failed' in str(outcome.exc)
@@ -642,7 +641,7 @@ class RunWithOutcomes:
 
         mod = _module_with(skipped=skipped, runs=runs)
         results = run(mod)
-        outcomes = dict(results)
+        outcomes = {r.name: r.outcome for r in results}
         assert isinstance(outcomes['skipped'], Skipped)
         assert isinstance(outcomes['runs'], Passed)
         assert called == ['runs']
@@ -659,8 +658,8 @@ class RunWithOutcomes:
         results = run(mod)
         assert called == ['ran']
         assert len(results) == 1
-        assert results[0][0] == 'maybe'
-        assert isinstance(results[0][1], Passed)
+        assert results[0].name == 'maybe'
+        assert isinstance(results[0].outcome, Passed)
 
     def skip_with_callable_condition_evaluated_at_run_time(self):
         # The callable is invoked when the runner gets to the test,
@@ -680,7 +679,7 @@ class RunWithOutcomes:
         mod = _module_with(maybe=maybe)
         results = run(mod)
         assert called == ['cond']
-        outcome = results[0][1]
+        outcome = results[0].outcome
         assert isinstance(outcome, Skipped)
         assert outcome.reason == 'lazy'
 
@@ -695,7 +694,7 @@ class RunWithOutcomes:
         mod = _module_with(maybe=maybe)
         results = run(mod)
         assert called == ['ran']
-        assert isinstance(results[0][1], Passed)
+        assert isinstance(results[0].outcome, Passed)
 
     def skip_callable_condition_raising_records_errored(self):
         @test
@@ -705,7 +704,7 @@ class RunWithOutcomes:
 
         mod = _module_with(maybe=maybe)
         results = run(mod)
-        outcome = results[0][1]
+        outcome = results[0].outcome
         assert isinstance(outcome, Errored)
         assert isinstance(outcome.exc, ZeroDivisionError)
 
@@ -717,7 +716,7 @@ class RunWithOutcomes:
 
         mod = _module_with(pending=pending)
         results = run(mod)
-        _, exc = results[0]
+        exc = results[0].outcome
         assert isinstance(exc, Skipped)
         assert exc.reason == 'not yet implemented'
 
@@ -729,7 +728,7 @@ class RunWithOutcomes:
 
         mod = _module_with(broken=broken)
         results = run(mod)
-        _, exc = results[0]
+        exc = results[0].outcome
         assert isinstance(exc, XFailed)
         assert isinstance(exc.actual, ValueError)
         assert exc.reason == 'known bug'
@@ -742,7 +741,7 @@ class RunWithOutcomes:
 
         mod = _module_with(secretly_works=secretly_works)
         results = run(mod)
-        _, exc = results[0]
+        exc = results[0].outcome
         assert isinstance(exc, XPassed)
         assert exc.reason == 'supposedly broken'
 
@@ -757,7 +756,7 @@ class RunWithOutcomes:
 
         mod = _module_with(both=both)
         results = run(mod)
-        _, exc = results[0]
+        exc = results[0].outcome
         assert isinstance(exc, Skipped)
         assert exc.reason == 'skip me'
         assert called == []
@@ -768,12 +767,12 @@ class RunWithOutcomes:
         )
         importlib.reload(mod)
         results = run(mod)
-        assert [name for name, _ in results] == [
+        assert [r.name for r in results] == [
             'parametrized[0]', 'parametrized[1]',
         ]
-        for _, exc in results:
-            assert isinstance(exc, Skipped)
-            assert exc.reason == 'blocked'
+        for r in results:
+            assert isinstance(r.outcome, Skipped)
+            assert r.outcome.reason == 'blocked'
         assert mod.CALLS == []
 
     def xfail_on_parametrized_evaluated_independently(self):
@@ -781,7 +780,7 @@ class RunWithOutcomes:
             'tests.fixtures.runner.xfail_on_params',
         )
         results = run(mod)
-        outcomes = dict(results)
+        outcomes = {r.name: r.outcome for r in results}
         # x == 1 raises -> XFailed
         assert isinstance(outcomes['parametrized[0]'], XFailed)
         assert isinstance(outcomes['parametrized[0]'].actual, ValueError)
@@ -794,7 +793,7 @@ class RunWithOutcomes:
         )
         mod.CALLS.clear()
         results = run(mod)
-        outcomes = dict(results)
+        outcomes = {r.name: r.outcome for r in results}
         assert isinstance(
             outcomes['Cls.skipped_method'], Skipped,
         )
@@ -813,7 +812,7 @@ class RunWithTagFilter:
 
     def keep_none_runs_everything(self):
         results = run(self._module())
-        names = sorted(name for name, _ in results)
+        names = sorted(r.name for r in results)
         assert names == [
             'SlowSuite.alpha',
             'SlowSuite.beta',
@@ -827,7 +826,7 @@ class RunWithTagFilter:
         from testsweet._tag_filter import make_tag_filter
         keep = make_tag_filter(frozenset({'slow'}), frozenset())
         results = run(self._module(), keep=keep)
-        names = sorted(name for name, _ in results)
+        names = sorted(r.name for r in results)
         # Both SlowSuite methods inherit the class's @tag('slow').
         # The lone tagged function matches; everything else falls out.
         assert names == [
@@ -840,7 +839,7 @@ class RunWithTagFilter:
         from testsweet._tag_filter import make_tag_filter
         keep = make_tag_filter(frozenset({'db'}), frozenset())
         results = run(self._module(), keep=keep)
-        names = sorted(name for name, _ in results)
+        names = sorted(r.name for r in results)
         # Untagged.gamma carries @tag('db') on the method;
         # SlowSuite.beta carries @tag('db') on top of the class's
         # @tag('slow').
@@ -850,7 +849,7 @@ class RunWithTagFilter:
         from testsweet._tag_filter import make_tag_filter
         keep = make_tag_filter(frozenset(), frozenset({'slow'}))
         results = run(self._module(), keep=keep)
-        names = sorted(name for name, _ in results)
+        names = sorted(r.name for r in results)
         # Class-level @tag('slow') vetoes both SlowSuite methods;
         # the lone function falls out too.
         assert names == [
@@ -865,7 +864,7 @@ class RunWithTagFilter:
             frozenset({'slow'}), frozenset({'db'}),
         )
         results = run(self._module(), keep=keep)
-        names = sorted(name for name, _ in results)
+        names = sorted(r.name for r in results)
         # SlowSuite.alpha — slow only, kept.
         # SlowSuite.beta — slow+db, vetoed.
         # lone_function — slow only, kept.
@@ -895,7 +894,86 @@ class RunWithTagFilter:
         )
         # names= picks the Untagged class; keep= narrows to its
         # 'db'-tagged method.
-        assert [name for name, _ in results] == ['Untagged.gamma']
+        assert [r.name for r in results] == ['Untagged.gamma']
+
+
+@test
+class RunCapturesOutput:
+    def passing_test_stdout_captured_not_leaked(self):
+        @test
+        def talks():
+            print('hello from test')
+
+        mod = _module_with(talks=talks)
+        results = run(mod)
+        assert results[0].stdout == 'hello from test\n'
+        assert results[0].stderr == ''
+        assert isinstance(results[0].outcome, Passed)
+
+    def stderr_captured_separately(self):
+        import sys
+
+        @test
+        def warns():
+            print('to err', file=sys.stderr)
+
+        mod = _module_with(warns=warns)
+        results = run(mod)
+        assert results[0].stderr == 'to err\n'
+        assert results[0].stdout == ''
+
+    def output_before_failure_is_captured(self):
+        @test
+        def noisy_fail():
+            print('printed then failed')
+            assert False
+
+        mod = _module_with(noisy_fail=noisy_fail)
+        results = run(mod)
+        assert isinstance(results[0].outcome, Failed)
+        assert results[0].stdout == 'printed then failed\n'
+
+    def silent_test_has_empty_capture(self):
+        @test
+        def quiet():
+            pass
+
+        mod = _module_with(quiet=quiet)
+        results = run(mod)
+        assert results[0].stdout == ''
+        assert results[0].stderr == ''
+
+    def skipped_test_has_empty_capture(self):
+        @test
+        @skip(reason='nope')
+        def skipped():
+            print('never runs')  # pragma: no cover
+
+        mod = _module_with(skipped=skipped)
+        results = run(mod)
+        assert isinstance(results[0].outcome, Skipped)
+        assert results[0].stdout == ''
+
+    def capture_is_inside_wrap_unit(self):
+        # Output printed inside wrap_unit's enter/exit (plugin
+        # setup/teardown) is NOT captured — only the unit's own output.
+        import sys
+
+        @contextmanager
+        def wrap(name):
+            print('plugin enter', file=sys.stderr)
+            try:
+                yield
+            finally:
+                print('plugin exit', file=sys.stderr)
+
+        @test
+        def unit():
+            print('unit body', file=sys.stderr)
+
+        mod = _module_with(unit=unit)
+        results = run(mod, wrap_unit=wrap)
+        assert results[0].stderr == 'unit body\n'
 
 
 def _module_with(**funcs):
