@@ -1,8 +1,10 @@
+import io
 import os
+from contextlib import redirect_stdout
 from unittest.mock import patch
 
 from testsweet import test
-from testsweet.__main__ import _supports_color
+from testsweet.__main__ import _supports_color, main
 
 
 def _tty_env(**env_overrides):
@@ -61,3 +63,24 @@ class SupportsColor:
              _tty_env(ANSICON='80x24'):
             m.isatty.return_value = True
             assert _supports_color()
+
+
+@test
+class MainCapturesOutput:
+    def failing_test_output_is_replayed(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = main(['tests.fixtures.main.capture_demo'])
+        text = buf.getvalue()
+        assert rc == 1
+        # The failing test's output is replayed under a capture section.
+        assert 'Captured stdout' in text
+        assert 'SECRET_FAIL_OUTPUT' in text
+
+    def passing_test_output_is_suppressed(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            main(['tests.fixtures.main.capture_demo'])
+        text = buf.getvalue()
+        # The passing test printed, but its output must not leak.
+        assert 'SECRET_PASS_OUTPUT' not in text

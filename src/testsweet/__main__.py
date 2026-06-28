@@ -7,7 +7,7 @@ import time
 from testsweet._config import load_config
 from testsweet._loaders import scoped_sys_path
 from testsweet._plugins import load_plugins, session_for, unit_wrapper
-from testsweet._outcomes import Errored, Failed, Outcome, Result, XPassed
+from testsweet._outcomes import Errored, Failed, Result, XPassed
 from testsweet._report import (
     format_result_line,
     print_failure_detail,
@@ -123,7 +123,7 @@ def main(argv: list[str]) -> int:
         wrap_unit = unit_wrapper(plugins)
         use_color = _supports_color()
         results: list[Result] = []
-        real_failures: list[tuple[str, Outcome]] = []
+        real_failures: list[tuple[str, Result]] = []
         start = time.monotonic()
         with session_for(plugins):
             groups = discover_targets(args.targets, config)
@@ -150,10 +150,15 @@ def main(argv: list[str]) -> int:
                     print(f'{indent}{format_result_line(short_name, result.outcome, use_color=use_color)}')
                     results.append(result)
                     if isinstance(result.outcome, (Failed, Errored, XPassed)):
-                        real_failures.append((full_name, result.outcome))
+                        real_failures.append((full_name, result))
         elapsed = time.monotonic() - start
-        for full_name, outcome in real_failures:
-            print_failure_detail(full_name, outcome)
+        for full_name, result in real_failures:
+            print_failure_detail(
+                full_name,
+                result.outcome,
+                result.stdout,
+                result.stderr,
+            )
         print()
         print(summarize(results, use_color=use_color, elapsed=elapsed))
         return 1 if real_failures else 0
